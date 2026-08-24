@@ -10,13 +10,49 @@ The format loosely follows Keep a Changelog while remaining focused on project d
 
 ## Planned
 
-- Lease Management
+- Lease Renewal
+- Lease Expiration
 - Rent Management
 - Utility Bills
 - Payment History
 - Notices
 - Reports
 - Analytics
+
+---
+
+# [v2.5.0] - Lease Creation
+
+## Added
+
+- Approving a `PENDING` Join Request now opens an inline form (Lease
+  Start Date, Monthly Rent pre-filled from the Flat, optional Deposit)
+  instead of a plain confirm — approval and Lease creation happen in one
+  transaction (`src/actions/join-request/approve-join-request.ts`,
+  `src/lib/validations/lease.ts`)
+- Renamed "End Tenancy" to "End Lease" — it now also closes the active
+  `Lease` (`status: ENDED`, `endDate` set), not just the `JoinRequest`
+  and Flat status (`src/actions/join-request/end-lease.ts`,
+  `src/components/join-request/end-lease-button.tsx`)
+- The landlord Flat Details "Current Tenant" card and the tenant
+  dashboard's "Your Current Flat" card now read Lease Start Date, actual
+  agreed Monthly Rent, and Deposit from the active `Lease`, instead of
+  approximating from the `JoinRequest`'s `updatedAt` and the Flat's
+  listed rent
+
+## Not Included
+
+- Lease Renewal and Lease Expiration — still planned
+- No standalone Lease list/detail views or `src/actions/lease/` folder
+  yet; Lease is currently reached only through the Join Request
+  approve / end-lease flow
+
+## Documentation
+
+Updated
+
+- Project Memory, Roadmap, Database (Lease moved from schema-only to
+  schema + application partial)
 
 ---
 

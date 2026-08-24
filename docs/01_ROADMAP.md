@@ -160,7 +160,8 @@ Features
 - Approval Workflow (marks the Flat Occupied, auto-rejects other pending
   requests for that Flat)
 - Rejection Workflow
-- End Tenancy (marks the Flat Vacant again, request status `ENDED`)
+- End Lease (marks the Flat Vacant again, request status `ENDED`, and
+  closes the associated Lease — see Lease Management below)
 - Landlord Requests Inbox (global + per-Building, filterable by status)
 - Tenant "My Requests" view (filterable by status)
 - Sidebar pending-request badge
@@ -171,14 +172,20 @@ Features
 
 Status
 
-🚧 Current Sprint
+🚧 Current Sprint (Lease Creation done, Renewal/Expiration pending)
 
 Features
 
-- Lease Creation
-- Lease Renewal
-- Lease Expiration
-- Move In / Move Out
+- Lease Creation — done. Folded into Join Request approval: approving now
+  requires a Lease Start Date and Monthly Rent (Deposit optional), and
+  creates the `Lease` row in the same transaction as the approval
+- Move Out — done. "End Lease" (formerly "End Tenancy") now closes the
+  `Lease` (`status: ENDED`, `endDate` set) alongside the `JoinRequest`
+  and Flat status changes
+- Lease Renewal — planned
+- Lease Expiration — planned (auto-flagging leases nearing/past `endDate`)
+- Move In — not separately tracked yet; `Lease.startDate` currently
+  doubles as the move-in date
 
 ---
 

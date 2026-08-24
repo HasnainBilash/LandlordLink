@@ -38,6 +38,12 @@ export async function getFlat(id: string) {
           },
         },
       },
+      leases: {
+        where: {
+          status: "ACTIVE",
+        },
+        take: 1,
+      },
     },
   });
 }

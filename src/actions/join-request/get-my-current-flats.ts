@@ -33,6 +33,12 @@ export async function getMyCurrentFlats() {
       flat: {
         include: {
           floor: true,
+          leases: {
+            where: {
+              status: "ACTIVE",
+            },
+            take: 1,
+          },
         },
       },
     },

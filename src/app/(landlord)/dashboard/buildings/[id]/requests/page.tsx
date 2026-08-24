@@ -40,10 +40,15 @@ export default async function BuildingRequestsPage({
     notFound();
   }
 
-  const requests = await getJoinRequestsForBuilding(
-    id,
-    activeStatus || undefined
-  );
+  const requests = (
+    await getJoinRequestsForBuilding(id, activeStatus || undefined)
+  ).map((request) => ({
+    ...request,
+    flat: {
+      ...request.flat,
+      monthlyRent: Number(request.flat.monthlyRent),
+    },
+  }));
 
   return (
     <div className="space-y-6">

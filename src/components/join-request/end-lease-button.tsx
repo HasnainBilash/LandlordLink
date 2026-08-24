@@ -3,27 +3,27 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { endTenancy } from "@/actions/join-request/end-tenancy";
+import { endLease } from "@/actions/join-request/end-lease";
 
 import { Button } from "@/components/ui/button";
 
-type EndTenancyButtonProps = {
+type EndLeaseButtonProps = {
   requestId: string;
 };
 
-export function EndTenancyButton({ requestId }: EndTenancyButtonProps) {
+export function EndLeaseButton({ requestId }: EndLeaseButtonProps) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
 
-  async function handleEndTenancy() {
+  async function handleEndLease() {
     const confirmed = window.confirm(
-      "End this tenancy? The flat will be marked vacant again, and this tenant will no longer see it as their current flat."
+      "End this lease? The flat will be marked vacant again, and this tenant will no longer see it as their current flat."
     );
 
     if (!confirmed) return;
 
     setIsPending(true);
-    const result = await endTenancy(requestId);
+    const result = await endLease(requestId);
     setIsPending(false);
 
     if (!result.success) {
@@ -39,9 +39,9 @@ export function EndTenancyButton({ requestId }: EndTenancyButtonProps) {
       size="sm"
       variant="destructive"
       disabled={isPending}
-      onClick={handleEndTenancy}
+      onClick={handleEndLease}
     >
-      {isPending ? "Working..." : "End Tenancy"}
+      {isPending ? "Working..." : "End Lease"}
     </Button>
   );
 }

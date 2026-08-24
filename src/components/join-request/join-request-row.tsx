@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ApproveRejectButtons } from "./approve-reject-buttons";
-import { EndTenancyButton } from "./end-tenancy-button";
+import { EndLeaseButton } from "./end-lease-button";
 
 const statusVariant = {
   PENDING: "outline",
@@ -32,6 +32,7 @@ type JoinRequestRowProps = {
     };
     flat: {
       flatNumber: string;
+      monthlyRent: number | string;
       floor: {
         floorNumber: number;
         name: string | null;
@@ -67,11 +68,14 @@ export function JoinRequestRow({ request }: JoinRequestRowProps) {
         )}
 
         {request.status === "PENDING" && (
-          <ApproveRejectButtons requestId={request.id} />
+          <ApproveRejectButtons
+            requestId={request.id}
+            defaultMonthlyRent={request.flat.monthlyRent}
+          />
         )}
 
         {request.status === "APPROVED" && (
-          <EndTenancyButton requestId={request.id} />
+          <EndLeaseButton requestId={request.id} />
         )}
       </CardContent>
     </Card>

@@ -70,7 +70,8 @@ Sprint 7 — Lease Management
 
 ## Current Development
 
-🚧 Lease Management
+🚧 Lease Management (Lease Creation + Move Out done; Renewal/Expiration
+pending)
 
 ---
 
@@ -295,11 +296,33 @@ Architecture v2.0 is considered frozen unless intentionally revised.
   since it spans Building, Flat, and TenantProfile rather than belonging to
   a single entity
 
+### Lease Management (in progress)
+
+- Lease Creation is folded into Join Request approval, not a separate
+  step — approving a request now opens an inline form (Start Date,
+  Monthly Rent pre-filled from the Flat, optional Deposit) and creates the
+  `Lease` row in the same transaction as the approval
+  (`src/actions/join-request/approve-join-request.ts`,
+  `src/lib/validations/lease.ts`)
+- "End Tenancy" was renamed "End Lease"
+  (`src/actions/join-request/end-lease.ts`,
+  `src/components/join-request/end-lease-button.tsx`) — it now also closes
+  the active `Lease` (`status: ENDED`, `endDate` set), not just the
+  `JoinRequest` and Flat status
+- The Flat Details page's "Current Tenant" card and the Tenant dashboard's
+  "Your Current Flat" card both now read from the active `Lease` (start
+  date, actual agreed rent, deposit) instead of approximating from the
+  `JoinRequest`
+- Still pending: Lease Renewal, Lease Expiration, and any dedicated
+  Lease list/detail views — there is no standalone `src/actions/lease/`
+  folder yet, since everything so far is reached through the Join Request
+  workflow
+
 ---
 
 # Planned Modules
 
-- Lease Management
+- Lease Renewal / Expiration
 - Rent Management
 - Utility Bills
 - Payment History
@@ -612,9 +635,9 @@ Correctness is preferred over speed.
 
 # Next Goal
 
-Implement Lease Management: turn an `APPROVED` Join Request into a formal
-Lease (start/end date, deposit, monthly rent), with Move In / Move Out and
-renewal handling.
+Lease Creation and Move Out are implemented (folded into the Join Request
+approve / end-lease flow). Remaining Lease Management work: Lease Renewal
+and Lease Expiration.
 
 Future modules should reuse the same architecture and development patterns
 introduced by the Building, Floors, Flats, Tenant Profile, and Join

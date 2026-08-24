@@ -5,9 +5,14 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
+import { approveJoinRequestSchema } from "@/lib/validations/lease";
+
 import { ActionResult } from "@/types/action-result";
 
-export async function approveJoinRequest(id: string): Promise<ActionResult> {
+export async function approveJoinRequest(
+  id: string,
+  formData: FormData
+): Promise<ActionResult> {
   const session = await auth();
 
   if (!session?.user?.id || session.user.role !== "LANDLORD") {
@@ -36,6 +41,24 @@ export async function approveJoinRequest(id: string): Promise<ActionResult> {
     };
   }
 
+  const values = {
+    startDate: formData.get("startDate"),
+    monthlyRent: formData.get("monthlyRent"),
+    deposit: formData.get("deposit"),
+  };
+
+  const parsed = approveJoinRequestSchema.safeParse(values);
+
+  if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+
+    return {
+      success: false,
+      message: Object.values(fieldErrors).flat()[0] ?? "Validation failed.",
+      errors: fieldErrors,
+    };
+  }
+
   await prisma.$transaction([
     prisma.joinRequest.update({
       where: { id },
@@ -53,6 +76,15 @@ export async function approveJoinRequest(id: string): Promise<ActionResult> {
       },
       data: { status: "REJECTED" },
     }),
+    prisma.lease.create({
+      data: {
+        tenantId: joinRequest.tenantId,
+        flatId: joinRequest.flatId,
+        startDate: parsed.data.startDate,
+        monthlyRent: parsed.data.monthlyRent,
+        deposit: parsed.data.deposit ? Number(parsed.data.deposit) : null,
+      },
+    }),
   ]);
 
   revalidatePath("/dashboard/requests");
@@ -61,7 +93,7 @@ export async function approveJoinRequest(id: string): Promise<ActionResult> {
   return {
     success: true,
     message:
-      "Request approved. The flat is now marked occupied, and any other pending requests for it were automatically rejected.",
+      "Request approved and lease created. The flat is now marked occupied, and any other pending requests for it were automatically rejected.",
     errors: {},
   };
 }

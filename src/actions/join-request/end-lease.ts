@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 
 import { ActionResult } from "@/types/action-result";
 
-export async function endTenancy(id: string): Promise<ActionResult> {
+export async function endLease(id: string): Promise<ActionResult> {
   const session = await auth();
 
   if (!session?.user?.id || session.user.role !== "LANDLORD") {
@@ -36,6 +36,14 @@ export async function endTenancy(id: string): Promise<ActionResult> {
     };
   }
 
+  const activeLease = await prisma.lease.findFirst({
+    where: {
+      tenantId: joinRequest.tenantId,
+      flatId: joinRequest.flatId,
+      status: "ACTIVE",
+    },
+  });
+
   await prisma.$transaction([
     prisma.joinRequest.update({
       where: { id },
@@ -45,6 +53,14 @@ export async function endTenancy(id: string): Promise<ActionResult> {
       where: { id: joinRequest.flatId },
       data: { status: "VACANT" },
     }),
+    ...(activeLease
+      ? [
+          prisma.lease.update({
+            where: { id: activeLease.id },
+            data: { status: "ENDED", endDate: new Date() },
+          }),
+        ]
+      : []),
   ]);
 
   revalidatePath("/dashboard/requests");
@@ -52,7 +68,7 @@ export async function endTenancy(id: string): Promise<ActionResult> {
 
   return {
     success: true,
-    message: "Tenancy ended. The flat is now marked vacant.",
+    message: "Lease ended. The flat is now marked vacant.",
     errors: {},
   };
 }

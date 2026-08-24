@@ -22,7 +22,15 @@ export default async function RequestsInboxPage({ searchParams }: PageProps) {
   const { status } = await searchParams;
   const activeStatus = status ?? "PENDING";
 
-  const requests = await getJoinRequests(activeStatus || undefined);
+  const requests = (await getJoinRequests(activeStatus || undefined)).map(
+    (request) => ({
+      ...request,
+      flat: {
+        ...request.flat,
+        monthlyRent: Number(request.flat.monthlyRent),
+      },
+    })
+  );
 
   return (
     <div className="space-y-6">

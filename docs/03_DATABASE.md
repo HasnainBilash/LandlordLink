@@ -78,7 +78,9 @@ Flat                    (schema + application complete)
 
 ↓
 
-Lease                   (schema only — not yet built)
+Lease                   (schema + application partial — created/ended via
+                         Join Request approve/end-lease, no standalone
+                         Renewal/Expiration UI yet)
 
 ↓
 
@@ -521,6 +523,18 @@ status
 Purpose
 
 Represents a rental agreement.
+
+Created
+
+Automatically, when a Landlord approves a `PENDING` JoinRequest — the
+Landlord supplies Start Date and Monthly Rent (Deposit optional) at
+approval time, and the Lease is created in the same transaction as the
+approval.
+
+Ended
+
+Via "End Lease" (`src/actions/join-request/end-lease.ts`) — sets `status`
+to `ENDED` and stamps `endDate`, alongside marking the Flat `VACANT` again.
 
 Relationships
 

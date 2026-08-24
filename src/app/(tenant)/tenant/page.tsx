@@ -46,6 +46,12 @@ export default async function TenantDashboardPage() {
                   request.flat.floor.name ||
                   `Floor ${request.flat.floor.floorNumber}`;
 
+                const activeLease = request.flat.leases[0];
+
+                const monthlyRent = activeLease
+                  ? activeLease.monthlyRent
+                  : request.flat.monthlyRent;
+
                 return (
                   <Link
                     key={request.id}
@@ -56,8 +62,15 @@ export default async function TenantDashboardPage() {
 
                     <p className="text-sm text-muted-foreground">
                       {floorLabel} · Flat {request.flat.flatNumber} · $
-                      {Number(request.flat.monthlyRent).toFixed(2)}/mo
+                      {Number(monthlyRent).toFixed(2)}/mo
                     </p>
+
+                    {activeLease && (
+                      <p className="text-xs text-muted-foreground">
+                        Lease started{" "}
+                        {new Date(activeLease.startDate).toLocaleDateString()}
+                      </p>
+                    )}
                   </Link>
                 );
               })}

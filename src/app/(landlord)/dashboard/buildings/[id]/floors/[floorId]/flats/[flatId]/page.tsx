@@ -15,7 +15,7 @@ import {
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { BackLink } from "@/components/ui/back-link";
 import { ApproveRejectButtons } from "@/components/join-request/approve-reject-buttons";
-import { EndTenancyButton } from "@/components/join-request/end-tenancy-button";
+import { EndLeaseButton } from "@/components/join-request/end-lease-button";
 
 type PageProps = {
   params: Promise<{
@@ -52,6 +52,8 @@ export default async function FlatDetailsPage({ params }: PageProps) {
   const currentTenantRequest = flat.joinRequests.find(
     (request) => request.status === "APPROVED"
   );
+
+  const activeLease = flat.leases[0];
 
   return (
     <div className="space-y-6">
@@ -135,7 +137,7 @@ export default async function FlatDetailsPage({ params }: PageProps) {
         <Card>
           <CardHeader className="flex items-center justify-between">
             <CardTitle>Current Tenant</CardTitle>
-            <EndTenancyButton requestId={currentTenantRequest.id} />
+            <EndLeaseButton requestId={currentTenantRequest.id} />
           </CardHeader>
 
           <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -170,11 +172,29 @@ export default async function FlatDetailsPage({ params }: PageProps) {
             </div>
 
             <div>
-              <p className="text-sm text-muted-foreground">Approved</p>
+              <p className="text-sm text-muted-foreground">Lease Start</p>
               <p className="font-semibold">
-                {new Date(
-                  currentTenantRequest.updatedAt
-                ).toLocaleDateString()}
+                {activeLease
+                  ? new Date(activeLease.startDate).toLocaleDateString()
+                  : "—"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-muted-foreground">Lease Rent</p>
+              <p className="font-semibold">
+                {activeLease
+                  ? `$${Number(activeLease.monthlyRent).toFixed(2)}/mo`
+                  : "—"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-muted-foreground">Deposit</p>
+              <p className="font-semibold">
+                {activeLease?.deposit
+                  ? `$${Number(activeLease.deposit).toFixed(2)}`
+                  : "—"}
               </p>
             </div>
           </CardContent>
@@ -225,7 +245,10 @@ export default async function FlatDetailsPage({ params }: PageProps) {
 
                     {request.status === "PENDING" && (
                       <div className="mt-2">
-                        <ApproveRejectButtons requestId={request.id} />
+                        <ApproveRejectButtons
+                          requestId={request.id}
+                          defaultMonthlyRent={Number(flat.monthlyRent)}
+                        />
                       </div>
                     )}
                   </div>
