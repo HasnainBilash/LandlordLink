@@ -10,14 +10,58 @@ The format loosely follows Keep a Changelog while remaining focused on project d
 
 ## Planned
 
-- Lease Renewal
-- Lease Expiration
-- Rent Management
 - Utility Bills
 - Payment History
 - Notices
 - Reports
 - Analytics
+
+---
+
+# [v2.6.0] - Rent Management
+
+## Decided
+
+- Leases are open-ended by design — no fixed term, so Lease Renewal and
+  Lease Expiration are not applicable and have been dropped from the
+  roadmap. Rent instead accrues every month until the Landlord ends the
+  Lease.
+
+## Added
+
+- Rent is generated automatically per active Lease — no scheduled job;
+  `src/lib/reconcile-rent.ts` backfills any missing `PENDING` Rent row
+  (one per month since `Lease.startDate`, due on the 1st) whenever Rent
+  data is read, using the same `createMany` + `skipDuplicates: true`
+  pattern the Floors/Flats bulk-create actions already use
+- A `PENDING` Rent becomes `OVERDUE` once its due month has fully passed
+  unpaid — not immediately on the due date itself
+- Late-join grace cutoff: joining on the 20th of a month or earlier
+  bills that whole month; joining after the 20th skips it, and the
+  first Rent period is the following month (`getFirstBillableMonth` in
+  `src/lib/rent.ts`)
+- Landlord "Mark Paid" action on the Flat Details page's new Rent card
+- Outstanding Balance surfaced on Flat Details (per Lease) and Building
+  Details (total across the building + count of flats with unpaid rent)
+- Tenants see their own Rent history (read-only) on their Flat Details
+  page
+
+## Not Included
+
+- `PARTIAL` rent status — needs itemized payment amounts, deferred to
+  Payment History
+- No day-level proration — a billable month is always charged in full;
+  only whether the join month itself is billable is decided (via the
+  20th-of-the-month cutoff above)
+
+## Documentation
+
+Updated
+
+- Project Memory, Roadmap (Lease Management marked complete with the
+  open-ended-lease decision recorded; Rent Management marked complete;
+  Utility Bills now current sprint), Database (Rent moved from
+  schema-only to schema + application partial)
 
 ---
 

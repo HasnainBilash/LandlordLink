@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getFlat } from "@/actions/flat/get-flat";
+import { getRentsForLease } from "@/actions/rent/get-rents-for-lease";
 import { DeleteFlatButton } from "@/components/flat/delete-flat-button";
+import { RentTable } from "@/components/rent/rent-table";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +56,13 @@ export default async function FlatDetailsPage({ params }: PageProps) {
   );
 
   const activeLease = flat.leases[0];
+
+  const rents = activeLease
+    ? (await getRentsForLease(activeLease.id)).map((rent) => ({
+        ...rent,
+        amount: Number(rent.amount),
+      }))
+    : [];
 
   return (
     <div className="space-y-6">
@@ -197,6 +206,18 @@ export default async function FlatDetailsPage({ params }: PageProps) {
                   : "—"}
               </p>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeLease && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Rent</CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <RentTable rents={rents} canManage />
           </CardContent>
         </Card>
       )}

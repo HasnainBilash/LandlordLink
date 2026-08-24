@@ -26,7 +26,7 @@ main
 
 ## Current Sprint
 
-Sprint 7 — Lease Management
+Sprint 8 — Utility Bills
 
 ---
 
@@ -68,10 +68,18 @@ Sprint 7 — Lease Management
 
 🚧 Updating to Version 2.0
 
+## Lease Management
+
+✅ Complete (open-ended leases — no Renewal/Expiration by design, see
+Roadmap)
+
+## Rent Management
+
+✅ Complete (first slice — Mark Paid only, no Partial payments)
+
 ## Current Development
 
-🚧 Lease Management (Lease Creation + Move Out done; Renewal/Expiration
-pending)
+🚧 Utility Bills
 
 ---
 
@@ -296,7 +304,7 @@ Architecture v2.0 is considered frozen unless intentionally revised.
   since it spans Building, Flat, and TenantProfile rather than belonging to
   a single entity
 
-### Lease Management (in progress)
+### Lease Management
 
 - Lease Creation is folded into Join Request approval, not a separate
   step — approving a request now opens an inline form (Start Date,
@@ -313,17 +321,42 @@ Architecture v2.0 is considered frozen unless intentionally revised.
   "Your Current Flat" card both now read from the active `Lease` (start
   date, actual agreed rent, deposit) instead of approximating from the
   `JoinRequest`
-- Still pending: Lease Renewal, Lease Expiration, and any dedicated
-  Lease list/detail views — there is no standalone `src/actions/lease/`
-  folder yet, since everything so far is reached through the Join Request
-  workflow
+- No dedicated Lease list/detail views or standalone `src/actions/lease/`
+  folder — Lease is reached only through the Join Request workflow
+- Leases are open-ended by design: no fixed end date, no Renewal, no
+  Expiration. A tenancy runs until the Landlord ends it with "End Lease";
+  the actual end date/term is negotiated verbally, not tracked upfront.
+  This was an explicit decision, not an oversight — see `01_ROADMAP.md`
+
+### Rent Management
+
+- No scheduled job — this project has no background job runner. Instead,
+  `src/lib/reconcile-rent.ts` backfills any missing `PENDING` Rent rows
+  for an `ACTIVE` Lease (one per month since `Lease.startDate`, amount =
+  the Lease's `monthlyRent`, due on the 1st) every time Rent data is read
+  (`getRentsForLease`, `getOutstandingBalanceForBuilding`,
+  `getTenantFlatView`) — `createMany` + `skipDuplicates: true`, the same
+  pattern Floors/Flats bulk-create already uses
+- A `PENDING` Rent becomes `OVERDUE` once the month it's due in has fully
+  passed and it's still unpaid (not immediately on its due date — the
+  Landlord/Tenant have the whole month)
+- Marking a Rent `PAID` is a manual Landlord action ("Mark Paid" on the
+  Flat Details page's Rent card) — no `PARTIAL` support yet, since that
+  needs itemized amounts, which belongs to Payment History
+- Outstanding Balance shown on Flat Details (per-Lease Rent list) and
+  Building Details (total + count of flats with unpaid rent)
+- Tenants see their own Rent history (read-only) on their Flat Details
+  page (`/tenant/flats/[flatId]`)
+- No day-level proration — a billable month is always charged in full.
+  Instead, a join-date cutoff (`getFirstBillableMonth` in
+  `src/lib/rent.ts`) decides whether the join month is billable at all:
+  joining on the 20th or earlier bills that whole month; joining after
+  the 20th skips it, and the first Rent period is the following month
 
 ---
 
 # Planned Modules
 
-- Lease Renewal / Expiration
-- Rent Management
 - Utility Bills
 - Payment History
 - Notices
@@ -635,15 +668,15 @@ Correctness is preferred over speed.
 
 # Next Goal
 
-Lease Creation and Move Out are implemented (folded into the Join Request
-approve / end-lease flow). Remaining Lease Management work: Lease Renewal
-and Lease Expiration.
+Implement Utility Bills: per-period charges (Water, Gas, Electricity,
+custom) tied to a Lease, following the same generation/status pattern
+Rent Management just established.
 
 Future modules should reuse the same architecture and development patterns
-introduced by the Building, Floors, Flats, Tenant Profile, and Join
-Request modules — including baking in breadcrumb and back navigation from
-the start, and routing new Tenant-facing pages under the `(tenant)` route
-group rather than `(landlord)`.
+introduced by the Building, Floors, Flats, Tenant Profile, Join Request,
+Lease, and Rent Management modules — including baking in breadcrumb and
+back navigation from the start, and routing new Tenant-facing pages under
+the `(tenant)` route group rather than `(landlord)`.
 
 ---
 

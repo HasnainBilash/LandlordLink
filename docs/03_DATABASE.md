@@ -78,13 +78,15 @@ Flat                    (schema + application complete)
 
 ↓
 
-Lease                   (schema + application partial — created/ended via
-                         Join Request approve/end-lease, no standalone
-                         Renewal/Expiration UI yet)
+Lease                   (schema + application complete — created/ended
+                         via Join Request approve/end-lease; open-ended,
+                         no Renewal/Expiration by design)
 
 ↓
 
-Rent                    (schema only — not yet built)
+Rent                    (schema + application partial — auto-generated
+                         per month, Mark Paid only; no Partial payments
+                         or Utility Bills yet)
 
 ↓
 
@@ -481,18 +483,17 @@ Join Request (requires the Building's Access Code)
 
 ↓
 
-Landlord Approval → Flat marked OCCUPIED, other pending requests
-                     for that Flat auto-REJECTED
+Landlord Approval → Lease created (Start Date + Monthly Rent supplied
+                     by the Landlord at approval time), Flat marked
+                     OCCUPIED, other pending requests for that Flat
+                     auto-REJECTED
         or
 Landlord Rejection → Flat stays VACANT
 
-↓ (later)
+↓ (later, whenever — no fixed term)
 
-Landlord Ends Tenancy → status ENDED, Flat marked VACANT again
-
-↓
-
-Lease Created (not yet built — see Lease Management)
+Landlord Ends Lease → JoinRequest status ENDED, Lease status ENDED,
+                       Flat marked VACANT again
 
 ```
 
@@ -536,6 +537,13 @@ Ended
 Via "End Lease" (`src/actions/join-request/end-lease.ts`) — sets `status`
 to `ENDED` and stamps `endDate`, alongside marking the Flat `VACANT` again.
 
+Open-Ended By Design
+
+A Lease has no fixed term. `endDate` is only ever set when "End Lease"
+actually closes one out — it is never set upfront as a planned expiry.
+There is no Renewal or Expiration feature; rent simply accrues every
+month (see Rent below) until the Landlord ends the Lease.
+
 Relationships
 
 ```
@@ -565,7 +573,7 @@ Contains
 
 Purpose
 
-Represents monthly rent.
+Represents one month's rent for a Lease.
 
 Unique Constraint
 
@@ -580,6 +588,34 @@ year
 ```
 
 This prevents duplicate rent entries for the same month.
+
+Generated
+
+Not by a scheduled job — there is no background job runner in this
+project. Instead, `src/lib/reconcile-rent.ts` runs reconciliation
+on-demand, from every landlord/tenant action that reads Rent data
+(`getRentsForLease`, `getOutstandingBalanceForBuilding`,
+`getTenantFlatView`). For an `ACTIVE` Lease, it backfills a `PENDING`
+Rent row (`amount` = the Lease's `monthlyRent`, `dueDate` = the 1st of
+that month) for every billable month up to the current month that
+doesn't already have one — using `createMany` with
+`skipDuplicates: true`, the same pattern the Floors/Flats bulk-create
+actions use.
+
+No day-level proration — a billable month is always charged in full.
+Instead, a join-date cutoff decides whether the join month itself is
+billable at all (`getFirstBillableMonth` in `src/lib/rent.ts`): joining
+on the 20th or earlier bills that whole month; joining after the 20th
+skips it, and the first Rent period is the following month.
+
+Status Transitions
+
+A `PENDING` Rent flips to `OVERDUE` once the month it's due in has fully
+passed (i.e. once the next month starts) and it's still unpaid — not
+immediately on its due date, so the Landlord/Tenant have the whole month
+to settle it. Marking a Rent `PAID` is a manual Landlord action (`Mark
+Paid` — `src/actions/rent/mark-rent-paid.ts`); `PARTIAL` is defined in
+the schema but not yet reachable from the UI — see Payment History.
 
 ---
 

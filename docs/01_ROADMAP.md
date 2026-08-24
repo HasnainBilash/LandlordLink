@@ -172,20 +172,33 @@ Features
 
 Status
 
-🚧 Current Sprint (Lease Creation done, Renewal/Expiration pending)
+✅ Completed
 
 Features
 
-- Lease Creation — done. Folded into Join Request approval: approving now
+- Lease Creation — folded into Join Request approval: approving now
   requires a Lease Start Date and Monthly Rent (Deposit optional), and
   creates the `Lease` row in the same transaction as the approval
-- Move Out — done. "End Lease" (formerly "End Tenancy") now closes the
-  `Lease` (`status: ENDED`, `endDate` set) alongside the `JoinRequest`
-  and Flat status changes
-- Lease Renewal — planned
-- Lease Expiration — planned (auto-flagging leases nearing/past `endDate`)
-- Move In — not separately tracked yet; `Lease.startDate` currently
-  doubles as the move-in date
+- Move Out — "End Lease" (formerly "End Tenancy") closes the `Lease`
+  (`status: ENDED`, `endDate` set) alongside the Flat/JoinRequest status
+  changes
+- Move In — not separately tracked; `Lease.startDate` doubles as the
+  move-in date
+
+Decision — Open-Ended Leases, No Renewal/Expiration
+
+Leases in this system have no fixed term. A tenancy starts on approval
+and continues — with rent accruing every month — until the Landlord
+explicitly ends it via "End Lease." There is no agreed end date to renew
+or expire against; that's negotiated verbally between Landlord and
+Tenant outside the system. So:
+
+- Lease Renewal — not applicable. There's no fixed term to renew.
+- Lease Expiration — not applicable. There's no expected end date to
+  flag against.
+
+`Lease.endDate` stays in the schema only as the timestamp "End Lease"
+writes when a tenancy is actually closed out, not as a planned term end.
 
 ---
 
@@ -195,18 +208,27 @@ Features
 
 Status
 
-⬜ Planned
+✅ Completed (first slice — Mark Paid only, no Partial payments yet)
 
 Features
 
-- Monthly Rent
-- Rent Status
-- Due Dates
-- Outstanding Balance
+- Monthly Rent — auto-generated per active Lease, reconciled on read (no
+  scheduled job). No day-level proration — a billable month is always
+  charged in full — but a join-date cutoff decides whether the join
+  month itself is billable: joining on the 20th or earlier bills that
+  month, joining after the 20th skips it and billing starts the
+  following month
+- Rent Status — `PENDING` → `OVERDUE` once the due month has fully
+  passed unpaid; → `PAID` via a manual Landlord action ("Mark Paid").
+  `PARTIAL` is defined but not reachable yet — needs Payment History
+- Due Dates — 1st of each covered month
+- Outstanding Balance — shown per Flat (Rent card on Flat Details) and
+  per Building (Overview card, total + count of flats with unpaid rent)
 
 Note
 
-Should support surfacing which flats currently have unpaid or overdue rent, feeding into Phase 6 Reports.
+Surfaces which flats currently have unpaid or overdue rent on the
+Building Details page already, feeding into Phase 6 Reports.
 
 ---
 
@@ -328,17 +350,17 @@ A module is considered complete only when all of the above are implemented and d
 
 Current Sprint
 
-⬜ Lease Management
+🚧 Utility Bills
 
 Goal
 
-Turn an `APPROVED` Join Request into a formal Lease (start/end date,
-deposit, monthly rent), and handle Move In / Move Out and renewal on top
-of the tenancy relationship Join Requests already established.
+Follow Rent Management's model (per-period charges tied to a Lease,
+Pending/Overdue/Paid status) for Water, Gas, Electricity, and custom
+utility charges.
 
-Lease Management should follow the same architecture and conventions
-established by the Building, Floors, Flats, Tenant Profile, and Join
-Request modules.
+Utility Bills should follow the same architecture and conventions
+established by the Building, Floors, Flats, Tenant Profile, Join
+Request, Lease, and Rent Management modules.
 
 ---
 

@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BackLink } from "@/components/ui/back-link";
+import { RentTable } from "@/components/rent/rent-table";
 
 type PageProps = {
   params: Promise<{
@@ -39,9 +40,14 @@ export default async function TenantFlatDetailsPage({ params }: PageProps) {
     notFound();
   }
 
-  const { flat, myRequests } = result;
+  const { flat, myRequests, activeLease, rents } = result;
 
   const floorLabel = flat.floor.name || `Floor ${flat.floor.floorNumber}`;
+
+  const displayRents = rents.map((rent) => ({
+    ...rent,
+    amount: Number(rent.amount),
+  }));
 
   return (
     <div className="space-y-6">
@@ -93,6 +99,46 @@ export default async function TenantFlatDetailsPage({ params }: PageProps) {
           </div>
         </CardContent>
       </Card>
+
+      {activeLease && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Your Lease</CardTitle>
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Started</p>
+                <p className="font-semibold">
+                  {new Date(activeLease.startDate).toLocaleDateString()}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-muted-foreground">Monthly Rent</p>
+                <p className="font-semibold">
+                  ${Number(activeLease.monthlyRent).toFixed(2)}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-muted-foreground">Deposit</p>
+                <p className="font-semibold">
+                  {activeLease.deposit
+                    ? `$${Number(activeLease.deposit).toFixed(2)}`
+                    : "—"}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-2 text-sm font-medium">Rent History</p>
+              <RentTable rents={displayRents} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { reconcileRentForLease } from "@/lib/reconcile-rent";
 
 export async function getTenantFlatView(flatId: string) {
   const session = await auth();
@@ -55,5 +56,24 @@ export async function getTenantFlatView(flatId: string) {
     return null;
   }
 
-  return { flat, myRequests };
+  const activeLease = await prisma.lease.findFirst({
+    where: {
+      tenantId: tenantProfile.id,
+      flatId,
+      status: "ACTIVE",
+    },
+  });
+
+  let rents: Awaited<ReturnType<typeof prisma.rent.findMany>> = [];
+
+  if (activeLease) {
+    await reconcileRentForLease(activeLease.id);
+
+    rents = await prisma.rent.findMany({
+      where: { leaseId: activeLease.id },
+      orderBy: [{ year: "desc" }, { month: "desc" }],
+    });
+  }
+
+  return { flat, myRequests, activeLease, rents };
 }

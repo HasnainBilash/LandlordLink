@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DeleteBuildingButton } from "@/components/building/delete-building-button";
 import { getBuilding } from "@/actions/building/get-building";
+import { getOutstandingBalanceForBuilding } from "@/actions/rent/get-outstanding-balance-for-building";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +30,9 @@ export default async function BuildingDetailsPage({
   if (!building) {
     notFound();
   }
+
+  const { totalOutstanding, flatsWithOutstandingRent } =
+    await getOutstandingBalanceForBuilding(id);
 
   return (
     <div className="space-y-6">
@@ -118,7 +122,7 @@ export default async function BuildingDetailsPage({
           <CardTitle>Overview</CardTitle>
         </CardHeader>
 
-        <CardContent className="grid gap-4 sm:grid-cols-3">
+        <CardContent className="grid gap-4 sm:grid-cols-4">
           <div>
             <p className="text-sm text-muted-foreground">
               Status
@@ -149,6 +153,26 @@ export default async function BuildingDetailsPage({
 
             <p className="font-semibold">
               {building.notices.length}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-sm text-muted-foreground">
+              Outstanding Rent
+            </p>
+
+            <p
+              className={
+                totalOutstanding > 0
+                  ? "font-semibold text-destructive"
+                  : "font-semibold"
+              }
+            >
+              ${totalOutstanding.toFixed(2)}
+              {flatsWithOutstandingRent > 0 &&
+                ` (${flatsWithOutstandingRent} flat${
+                  flatsWithOutstandingRent === 1 ? "" : "s"
+                })`}
             </p>
           </div>
         </CardContent>
