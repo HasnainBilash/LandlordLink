@@ -170,9 +170,14 @@ export default async function FlatDetailsPage({ params }: PageProps) {
           </div>
 
           <div>
-            <p className="text-sm text-muted-foreground">Monthly Rent</p>
+            <p className="text-sm text-muted-foreground">
+              {activeLease ? "Current Rent" : "Listed Rent"}
+            </p>
             <p className="font-semibold">
-              ${Number(flat.monthlyRent).toFixed(2)}
+              $
+              {Number(
+                activeLease ? activeLease.monthlyRent : flat.monthlyRent
+              ).toFixed(2)}
             </p>
           </div>
 

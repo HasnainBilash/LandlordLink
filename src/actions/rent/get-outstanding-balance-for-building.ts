@@ -39,13 +39,17 @@ export async function getOutstandingBalanceForBuilding(buildingId: string) {
       leaseId: { in: activeLeases.map((lease) => lease.id) },
       status: { in: ["PENDING", "OVERDUE", "PARTIAL"] },
     },
-    select: { amount: true, leaseId: true },
+    select: { amount: true, leaseId: true, payments: { select: { amount: true } } },
   });
 
-  const totalOutstanding = unpaidRent.reduce(
-    (sum, rent) => sum + Number(rent.amount),
-    0
-  );
+  const totalOutstanding = unpaidRent.reduce((sum, rent) => {
+    const paidSoFar = rent.payments.reduce(
+      (paidSum, payment) => paidSum + Number(payment.amount),
+      0
+    );
+
+    return sum + (Number(rent.amount) - paidSoFar);
+  }, 0);
 
   const flatsWithOutstandingRent = new Set(
     unpaidRent.map(

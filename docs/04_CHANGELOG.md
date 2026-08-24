@@ -10,8 +10,45 @@ The format loosely follows Keep a Changelog while remaining focused on project d
 
 ## Planned
 
-- Reports
 - Analytics
+
+---
+
+# [v2.10.0] - Reports
+
+## Added
+
+- One portfolio-wide page, `/dashboard/reports` (linked from the
+  sidebar) — no separate route per report category, and no per-building
+  `/dashboard/buildings/[id]/reports` route; a Building Statistics
+  table on this page covers that need
+- Occupancy: Vacant/Occupied/Maintenance counts and rate, portfolio-wide
+  and per building
+- Revenue: all-time and this-month totals (Rent + Utility Bill payments
+  combined), portfolio-wide and per building
+- Outstanding: Rent + Utility Bills outstanding, portfolio-wide and per
+  building
+- A 6-month Due vs. Collected table. "Collected" is whatever was paid
+  in that calendar month, not necessarily for that month's rent — noted
+  directly on the page
+- No new models or migrations — `src/actions/report/get-portfolio-report.ts`
+  only aggregates data Rent Management, Utility Bills, Payment History,
+  and Join Requests were already collecting
+
+## Fixed
+
+- `getOutstandingBalanceForBuilding` (Building Details' "Outstanding
+  Rent" figure) was counting a `PARTIAL` Rent's full amount instead of
+  its remaining balance after the payment already made — found while
+  building the Outstanding report, fixed everywhere this number is
+  shown
+
+## Documentation
+
+Updated
+
+- Project Memory, Roadmap (Reports marked complete; Phase 7 — Analytics
+  now current sprint)
 
 ---
 

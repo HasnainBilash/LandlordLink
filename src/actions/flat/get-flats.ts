@@ -23,5 +23,12 @@ export async function getFlats(floorId: string) {
     orderBy: {
       flatNumber: "asc",
     },
+    include: {
+      leases: {
+        where: { status: "ACTIVE" },
+        take: 1,
+        select: { monthlyRent: true },
+      },
+    },
   });
 }

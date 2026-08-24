@@ -355,15 +355,37 @@ Features
 
 Status
 
-⬜ Planned
+✅ Completed (first slice — one portfolio-wide page, not a report per
+category)
 
 Features
 
-- Building Statistics
-- Occupancy Reports
-- Revenue Reports
-- Outstanding Payments
-- Monthly Reports
+- Building Statistics — a per-building table (flats, occupancy,
+  revenue, outstanding) on the same page as the portfolio totals,
+  rather than a separate view per building
+- Occupancy Reports — Vacant/Occupied/Maintenance counts and an
+  occupancy rate, portfolio-wide and per building
+- Revenue Reports — all-time and this-month totals, portfolio-wide and
+  per building, summed from `PaymentHistory` (Rent + Utility Bill
+  payments combined)
+- Outstanding Payments — Rent and Utility Bills outstanding, portfolio-
+  wide and per building. Fixed a real bug found while building this:
+  the existing per-building "Outstanding Rent" figure on Building
+  Details was counting a `PARTIAL` Rent's full amount, not its
+  remaining balance after the payment already made
+- Monthly Reports — a 6-month Due vs. Collected table. "Collected" is
+  whatever was paid *in* that calendar month, not necessarily *for*
+  that month's rent — the two can differ when a tenant catches up on a
+  past-due period, and the page says so
+
+No new models or migrations — every number here was already being
+collected by Rent Management, Utility Bills, Payment History, and Join
+Requests; this phase only aggregates and displays it
+(`src/actions/report/get-portfolio-report.ts`).
+
+One page, not several — `/dashboard/reports`, linked from the sidebar.
+No per-building `/dashboard/buildings/[id]/reports` route; the
+Building Statistics table on the one portfolio page covers that need.
 
 ---
 
@@ -405,20 +427,19 @@ A module is considered complete only when all of the above are implemented and d
 
 Current Sprint
 
-🚧 Phase 6 — Reports
+🚧 Phase 7 — Analytics
 
 Goal
 
-Phase 5 (Communication) is now complete. Start Phase 6: Building
-Statistics, Occupancy Reports, Revenue Reports, Outstanding Payments,
-and Monthly Reports — surfacing the data already being collected by
-every module so far (Rent, Utility Bills, Payment History, Join
-Requests, Activity Logs) rather than collecting anything new.
+Phase 6 (Reports) is now complete. Start Phase 7: Dashboard Charts,
+Occupancy Analytics, Revenue Trends, Building Performance — visualizing
+the same data Reports already aggregates
+(`getPortfolioReport`), rather than collecting anything new.
 
-Reports should follow the same architecture and conventions established
-by the Building, Floors, Flats, Tenant Profile, Join Request, Lease,
-Rent Management, Utility Bills, Payment History, Notices, and Activity
-Logs modules.
+Analytics should follow the same architecture and conventions
+established by the Building, Floors, Flats, Tenant Profile, Join
+Request, Lease, Rent Management, Utility Bills, Payment History,
+Notices, Activity Logs, and Reports modules.
 
 ---
 

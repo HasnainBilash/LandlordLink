@@ -33,7 +33,7 @@ export default async function FlatsPage({ params }: PageProps) {
 
   const flats = (await getFlats(floorId)).map((flat) => ({
     ...flat,
-    monthlyRent: Number(flat.monthlyRent),
+    monthlyRent: Number(flat.leases[0]?.monthlyRent ?? flat.monthlyRent),
   }));
 
   return (

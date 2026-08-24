@@ -26,7 +26,7 @@ main
 
 ## Current Sprint
 
-Sprint 11 — Reports (Phase 6)
+Sprint 12 — Analytics (Phase 7)
 
 ---
 
@@ -96,9 +96,14 @@ auto-expiry, not future-publish — see Roadmap)
 ✅ Complete (representative instrumentation, not literally every
 action — see Roadmap)
 
+## Reports (Phase 6)
+
+✅ Complete (one portfolio-wide page, not a report per category — no
+new models, only aggregation)
+
 ## Current Development
 
-🚧 Reports (Phase 6)
+🚧 Analytics (Phase 7)
 
 ---
 
@@ -461,11 +466,34 @@ Architecture v2.0 is considered frozen unless intentionally revised.
   everything that happened across every building they own, regardless
   of actor)
 
+### Reports (Phase 6)
+
+- One page (`/dashboard/reports`, linked from the sidebar), not a
+  separate route per report category and not a per-building
+  `/dashboard/buildings/[id]/reports` route — the "Building
+  Statistics" table on this one page covers that need
+- Everything comes from one action,
+  `src/actions/report/get-portfolio-report.ts` — no new models or
+  migrations, since Rent, Utility Bills, Payment History, and Join
+  Requests were already collecting every number this phase needed
+- Occupancy (Vacant/Occupied/Maintenance + rate), Revenue (all-time +
+  this month, from `PaymentHistory`), Outstanding (Rent + Utility
+  Bills), and a 6-month Due-vs-Collected table — each shown
+  portfolio-wide and broken down per building in the same table
+- "Collected" in the monthly table is whatever was paid *in* that
+  calendar month, not necessarily *for* that month's rent — stated
+  directly on the page, since a tenant catching up on a past-due month
+  makes those two numbers genuinely different
+- Fixed a real bug found while building this: `getOutstandingBalanceForBuilding`
+  (Building Details' "Outstanding Rent" figure) was counting a
+  `PARTIAL` Rent's full `amount`, not its remaining balance after the
+  payment already made — now subtracts `payments` before summing,
+  everywhere this number is shown
+
 ---
 
 # Planned Modules
 
-- Reports
 - Analytics
 
 ---
@@ -624,6 +652,10 @@ Protected (Landlord)
 
 ```
 /dashboard/buildings/[id]/activity
+```
+
+```
+/dashboard/reports
 ```
 
 Protected (Tenant)
@@ -796,16 +828,15 @@ Correctness is preferred over speed.
 
 # Next Goal
 
-Phase 5 (Communication) is complete. Start Phase 6 — Reports: Building
-Statistics, Occupancy Reports, Revenue Reports, Outstanding Payments,
-Monthly Reports — surfacing data already collected by Rent, Utility
-Bills, Payment History, Join Requests, and Activity Logs, rather than
-collecting anything new.
+Phase 6 (Reports) is complete. Start Phase 7 — Analytics: Dashboard
+Charts, Occupancy Analytics, Revenue Trends, Building Performance —
+visualizing the same data `getPortfolioReport` already aggregates,
+rather than collecting anything new.
 
 Future modules should reuse the same architecture and development patterns
 introduced by the Building, Floors, Flats, Tenant Profile, Join Request,
-Lease, Rent Management, Utility Bills, Payment History, Notices, and
-Activity Logs modules —
+Lease, Rent Management, Utility Bills, Payment History, Notices,
+Activity Logs, and Reports modules —
 including baking in breadcrumb and
 back navigation from the start, and routing new Tenant-facing pages under
 the `(tenant)` route group rather than `(landlord)`.

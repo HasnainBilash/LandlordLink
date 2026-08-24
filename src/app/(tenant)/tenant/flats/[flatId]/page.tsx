@@ -119,9 +119,14 @@ export default async function TenantFlatDetailsPage({ params }: PageProps) {
           </div>
 
           <div>
-            <p className="text-sm text-muted-foreground">Monthly Rent</p>
+            <p className="text-sm text-muted-foreground">
+              {activeLease ? "Your Rent" : "Listed Rent"}
+            </p>
             <p className="font-semibold">
-              ${Number(flat.monthlyRent).toFixed(2)}
+              $
+              {Number(
+                activeLease ? activeLease.monthlyRent : flat.monthlyRent
+              ).toFixed(2)}
             </p>
           </div>
 
