@@ -26,7 +26,7 @@ main
 
 ## Current Sprint
 
-Sprint 9 — Notices
+Sprint 10 — Activity Logs
 
 ---
 
@@ -86,9 +86,14 @@ Roadmap)
 ✅ Complete (first slice — feeds Rent/Utility Bill status, no
 receipts/timeline view yet)
 
+## Notices
+
+✅ Complete (Building-scoped only, no Floor Notices; "Scheduled" means
+auto-expiry, not future-publish — see Roadmap)
+
 ## Current Development
 
-🚧 Notices
+🚧 Activity Logs
 
 ---
 
@@ -395,11 +400,40 @@ Architecture v2.0 is considered frozen unless intentionally revised.
   payments are currently only visible per Rent/Utility Bill row on Flat
   Details
 
+### Notices
+
+- Building-scoped only — the `Notice` model has no `floorId`, and
+  adding one wasn't worth a migration for this first slice, so Floor
+  Notices from the original roadmap wording were dropped
+- "Scheduled Notices" was reinterpreted as auto-expiry: the schema has
+  `expiresAt` (no future-publish column), so a notice is visible from
+  creation until its optional expiry date
+- Audience targeting via the existing `NoticeAudience` enum (`ALL` /
+  `TENANTS` / `LANDLORDS`) — a Tenant only sees `ALL`/`TENANTS` notices,
+  scoped to Buildings where they currently hold an `ACTIVE` Lease
+  (`src/actions/notice/get-active-notices-for-tenant.ts`)
+- Landlord CRUD lives at `/dashboard/buildings/[id]/notices` — the list
+  page doubles as the "details" view (each card shows full content, an
+  Active/Expired badge, Edit/Delete) since a notice has no nested
+  content that would justify a separate details route
+- Hard delete, not soft — `Notice` has no `deletedAt` column in the
+  schema, unlike Building/Floor/Flat
+- Tenant-facing read-only view at `/tenant/notices`, linked from the
+  tenant nav
+- Unread badge on the tenant nav's "Notices" link — real unread
+  tracking, not just an active-notice count. `TenantProfile` gained a
+  `lastNoticesViewedAt` column (migration); the badge counts active
+  notices created after that timestamp
+  (`src/actions/notice/get-unread-notice-count.ts`), and it's cleared by
+  `MarkNoticesViewed` (`src/components/notice/mark-notices-viewed.tsx`)
+  — a client component that fires only on real mount via `useEffect`,
+  not on a `<Link>` prefetch, so hovering the nav link doesn't silently
+  clear the badge before the tenant actually opens the page
+
 ---
 
 # Planned Modules
 
-- Notices
 - Activity Logs
 - Reports
 - Analytics
@@ -542,6 +576,18 @@ Protected (Landlord)
 /dashboard/buildings/[id]/requests
 ```
 
+```
+/dashboard/buildings/[id]/notices
+```
+
+```
+/dashboard/buildings/[id]/notices/new
+```
+
+```
+/dashboard/buildings/[id]/notices/[noticeId]/edit
+```
+
 Protected (Tenant)
 
 ```
@@ -574,6 +620,10 @@ Protected (Tenant)
 
 ```
 /tenant/requests
+```
+
+```
+/tenant/notices
 ```
 
 `proxy.ts` enforces this split — a Tenant hitting any `/dashboard/*` route
@@ -708,13 +758,15 @@ Correctness is preferred over speed.
 
 # Next Goal
 
-Implement Notices (Phase 5 — Communication): Landlord-published
-announcements scoped to a Building or Floor, with optional scheduling,
-visible to Tenants.
+Implement Activity Logs (Phase 5 — Communication): record important
+user/building activity (login, building created/deleted, lease approved,
+payment recorded) for auditing — the last Phase 5 module before Phase 6
+Reports.
 
 Future modules should reuse the same architecture and development patterns
 introduced by the Building, Floors, Flats, Tenant Profile, Join Request,
-Lease, Rent Management, Utility Bills, and Payment History modules —
+Lease, Rent Management, Utility Bills, Payment History, and Notices
+modules —
 including baking in breadcrumb and
 back navigation from the start, and routing new Tenant-facing pages under
 the `(tenant)` route group rather than `(landlord)`.

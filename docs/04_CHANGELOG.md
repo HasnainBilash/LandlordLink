@@ -10,10 +10,49 @@ The format loosely follows Keep a Changelog while remaining focused on project d
 
 ## Planned
 
-- Notices
 - Activity Logs
 - Reports
 - Analytics
+
+---
+
+# [v2.8.0] - Notices
+
+## Decided
+
+- Notices are Building-scoped only — the schema has no `floorId`, and
+  Floor Notices weren't worth a migration for this first slice
+- "Scheduled Notices" means auto-expiry (the existing `expiresAt`
+  field), not a future publish date — there's no column for that, and
+  none was added
+
+## Added
+
+- Full Landlord CRUD at `/dashboard/buildings/[id]/notices` — title,
+  content, audience (`ALL`/`TENANTS`/`LANDLORDS`), optional expiry date
+- The list page shows an Active/Expired badge per notice and doubles as
+  the "details" view (no separate details route — a notice has no
+  nested content to justify one)
+- Hard delete (`Notice` has no `deletedAt` column, unlike Building/
+  Floor/Flat)
+- Tenant-facing read-only view at `/tenant/notices`, linked from the
+  tenant nav — shows only `ALL`/`TENANTS` notices from Buildings where
+  the Tenant currently holds an `ACTIVE` Lease
+- "Notices" button + linked count added to Building Details
+- Unread badge on the tenant nav's "Notices" link, so a new notice is
+  actually noticeable instead of requiring a tenant to check the page
+  on their own initiative. Added `TenantProfile.lastNoticesViewedAt`
+  (migration) to track real unread state rather than just showing a
+  static count of active notices; a small client component clears it
+  by firing only on a genuine page mount, not a `<Link>` hover/prefetch
+
+## Documentation
+
+Updated
+
+- Project Memory, Roadmap (Notices marked complete; Activity Logs now
+  current sprint), Database (`Notice` moved from schema-only to
+  schema + application complete)
 
 ---
 

@@ -107,7 +107,8 @@ UtilityBill             (schema + application partial — manually
                          recorded per Lease; no status column, always
                          computed from PaymentHistory)
 
-Notice                  (schema only — not yet built)
+Notice                  (schema + application complete — Building-scoped
+                         only, hard delete, no Floor Notices)
 
 ActivityLog
 
@@ -465,6 +466,9 @@ Contains
 - Occupation
 - National ID
 - Emergency Contact
+- `lastNoticesViewedAt` (optional) — the last time this Tenant opened
+  `/tenant/notices`. Powers the unread-notices badge on the tenant nav;
+  not user-facing data, purely a UI convenience column
 
 ---
 
@@ -711,6 +715,12 @@ Purpose
 
 Allows landlords to publish announcements.
 
+Scope
+
+Building-only — there is no `floorId` column. Floor-level notices were
+considered and deliberately dropped rather than migrated in for the
+first slice.
+
 Audience
 
 ```
@@ -723,7 +733,21 @@ LANDLORDS
 
 ```
 
-Can expire automatically.
+A Tenant is only shown `ALL`/`TENANTS` notices, and only from Buildings
+where they currently hold an `ACTIVE` Lease
+(`src/actions/notice/get-active-notices-for-tenant.ts`).
+
+Expiry
+
+Can expire automatically via `expiresAt` (optional). This is what
+"Scheduled Notices" means in this project — there is no separate
+future-publish date; a notice is visible from the moment it's created.
+
+Deletion
+
+Hard delete (`src/actions/notice/delete-notice.ts`) — unlike Building,
+Floor, and Flat, `Notice` has no `deletedAt` column, so there is
+nothing to soft-delete into.
 
 ---
 

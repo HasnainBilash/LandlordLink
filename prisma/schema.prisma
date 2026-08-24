@@ -206,6 +206,8 @@ model TenantProfile {
   nationalId       String? @unique
   emergencyContact String?
 
+  lastNoticesViewedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

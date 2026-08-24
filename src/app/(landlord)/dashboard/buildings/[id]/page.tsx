@@ -78,6 +78,12 @@ export default async function BuildingDetailsPage({
             </Button>
           </Link>
 
+          <Link href={`/dashboard/buildings/${building.id}/notices`}>
+            <Button variant="outline">
+              Notices
+            </Button>
+          </Link>
+
           <Link href={`/dashboard/buildings/${building.id}/edit`}>
             <Button>
               Edit Building
@@ -151,9 +157,12 @@ export default async function BuildingDetailsPage({
               Notices
             </p>
 
-            <p className="font-semibold">
+            <Link
+              href={`/dashboard/buildings/${building.id}/notices`}
+              className="font-semibold hover:underline"
+            >
               {building.notices.length}
-            </p>
+            </Link>
           </div>
 
           <div>

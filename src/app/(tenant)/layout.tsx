@@ -1,13 +1,17 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 
+import { getUnreadNoticeCount } from "@/actions/notice/get-unread-notice-count";
+
 import { AppHeader } from "@/components/layout/app-header";
 
 type TenantLayoutProps = {
   children: ReactNode;
 };
 
-export default function TenantLayout({ children }: TenantLayoutProps) {
+export default async function TenantLayout({ children }: TenantLayoutProps) {
+  const unreadNoticeCount = await getUnreadNoticeCount();
+
   return (
     <div className="min-h-screen bg-muted/30">
       <AppHeader />
@@ -27,6 +31,18 @@ export default function TenantLayout({ children }: TenantLayoutProps) {
 
         <Link href="/tenant/requests" className="hover:text-foreground hover:underline">
           My Requests
+        </Link>
+
+        <Link
+          href="/tenant/notices"
+          className="flex items-center gap-1.5 hover:text-foreground hover:underline"
+        >
+          Notices
+          {unreadNoticeCount > 0 && (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-semibold text-destructive-foreground">
+              {unreadNoticeCount}
+            </span>
+          )}
         </Link>
       </nav>
 

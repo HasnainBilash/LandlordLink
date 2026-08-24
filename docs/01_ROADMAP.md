@@ -289,17 +289,37 @@ status flip with no payment record) — Rent now goes through the same
 
 Status
 
-⬜ Planned
+✅ Completed
 
 Features
 
-- Building Notices
-- Floor Notices
-- Scheduled Notices
+- Building Notices — every notice is scoped to a Building (title,
+  content, audience). Floor Notices were dropped: the `Notice` model
+  has no `floorId`, and floor-level targeting wasn't worth a migration
+  for this first slice
+- Scheduled Notices — reinterpreted as auto-expiry, since the schema
+  has `expiresAt` (a future publish date would need a new column, which
+  wasn't added). A notice is visible from creation until its optional
+  `expiresAt`, if set
+- Audience targeting (`ALL` / `TENANTS` / `LANDLORDS`) — a Tenant only
+  ever sees `ALL`/`TENANTS` notices, and only from Buildings where they
+  currently have an `ACTIVE` Lease
+- Landlord CRUD at `/dashboard/buildings/[id]/notices` (list shows an
+  Active/Expired badge per notice; list doubles as the "details" view —
+  no separate details page, since a notice has no nested content
+  worth a dedicated page)
+- Hard delete — `Notice` has no `deletedAt` column in the schema,
+  unlike Building/Floor/Flat, so there's nothing to soft-delete into
+- Tenant-facing read-only view at `/tenant/notices`
+- Unread badge on the tenant nav — `TenantProfile.lastNoticesViewedAt`
+  (added via migration) tracks the last time a Tenant opened Notices;
+  the badge counts active notices published since then, and clears on
+  their next real visit (not on a hover/prefetch)
 
 Note
 
-Should support surfacing active notices per building/floor at a glance, feeding into Phase 6 Reports.
+Surfaces active notices at a glance on the Tenant's own Notices page;
+feeding a cross-building view into Phase 6 Reports is still future work.
 
 ---
 
@@ -371,18 +391,18 @@ A module is considered complete only when all of the above are implemented and d
 
 Current Sprint
 
-🚧 Notices (Phase 5 — Communication)
+🚧 Activity Logs (Phase 5 — Communication)
 
 Goal
 
-Let a Landlord publish announcements scoped to a Building, a Floor, or
-scheduled for later, visible to Tenants — the first Phase 5 module now
-that Phase 4's financial core (Lease, Rent, Utility Bills, Payment
-History) is in place.
+Record important user/building activity (login, building created/
+deleted, lease approved, payment recorded) for auditing — the second
+and last Phase 5 module before Phase 6 Reports.
 
-Notices should follow the same architecture and conventions established
-by the Building, Floors, Flats, Tenant Profile, Join Request, Lease,
-Rent Management, Utility Bills, and Payment History modules.
+Activity Logs should follow the same architecture and conventions
+established by the Building, Floors, Flats, Tenant Profile, Join
+Request, Lease, Rent Management, Utility Bills, Payment History, and
+Notices modules.
 
 ---
 
