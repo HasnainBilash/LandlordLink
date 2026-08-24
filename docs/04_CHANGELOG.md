@@ -10,11 +10,64 @@ The format loosely follows Keep a Changelog while remaining focused on project d
 
 ## Planned
 
-- Utility Bills
-- Payment History
 - Notices
+- Activity Logs
 - Reports
 - Analytics
+
+---
+
+# [v2.7.0] - Utility Bills + Payment History
+
+## Added
+
+### Payment History (thin slice)
+
+- `recordPayment` (`src/actions/payment/record-payment.ts`) — one shared
+  action for recording a payment against either a `Rent` or a
+  `UtilityBill`, creating the `PaymentHistory` row. Validates the amount
+  against the target's remaining balance, so partial payments are
+  supported and overpayment is rejected
+- Recording a payment against a `Rent` updates its cached `status` to
+  `PARTIAL`/`PAID`. `UtilityBill` has no such column — its status is
+  always computed live from its payments (`computePaymentStatus` in
+  `src/lib/payment-status.ts`), since the schema deliberately left it
+  without one
+- Not yet built: a receipts view or a cross-Lease payment timeline
+
+### Utility Bills
+
+- Landlord manually records a bill against an active Lease — type (full
+  `UtilityType` enum), billing month, amount, due date
+  (`src/actions/utility-bill/create-utility-bill.ts`). No
+  auto-generation, unlike Rent — utility amounts vary by actual usage
+- Shown on Flat Details (Landlord, with Record Payment) and the
+  Tenant's own Flat page (read-only)
+
+### Shared Billing UI
+
+- `src/components/billing/billing-table.tsx` and
+  `record-payment-button.tsx` replace the old Rent-only `RentTable` /
+  `MarkRentPaidButton` — Rent and Utility Bill rows are now structurally
+  identical (label, amount, due date, status, Record Payment) once both
+  go through Payment History
+
+## Changed
+
+- Rent's "Mark Paid" shortcut (a direct status flip, no payment record)
+  is removed. Marking a Rent paid now goes through the same
+  `recordPayment` action Utility Bills uses, so every paid Rent has a
+  real `PaymentHistory` row behind it, and partial payments are now
+  possible for Rent too
+
+## Documentation
+
+Updated
+
+- Project Memory, Roadmap (Utility Bills and Payment History marked
+  complete as first slices; Notices — Phase 5 — now current sprint),
+  Database (`UtilityBill` and `PaymentHistory` moved from schema-only /
+  partial to schema + application, `Rent` to fully complete)
 
 ---
 

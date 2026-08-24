@@ -1,10 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { deleteBuilding } from "@/actions/building/delete-building";
 
 import { Button } from "@/components/ui/button";
+import { useSingleFlightAction } from "@/hooks/use-single-flight-action";
 
 type DeleteBuildingButtonProps = {
   buildingId: string;
@@ -14,7 +14,7 @@ export function DeleteBuildingButton({
   buildingId,
 }: DeleteBuildingButtonProps) {
   const router = useRouter();
-  const [isPending, setIsPending] = useState(false);
+  const { run, isPending } = useSingleFlightAction(deleteBuilding);
 
   async function handleDelete() {
     const confirmed = window.confirm(
@@ -23,18 +23,18 @@ export function DeleteBuildingButton({
 
     if (!confirmed) return;
 
-    setIsPending(true);
+    const result = await run(buildingId);
 
-    const result = await deleteBuilding(buildingId);
+    if (!result) return;
 
     if (!result.success) {
-      setIsPending(false);
       alert(result.message);
       return;
     }
 
     router.replace("/dashboard/buildings");
   }
+
   return (
     <Button
       type="button"

@@ -3,14 +3,17 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useSingleFlightAction } from "@/hooks/use-single-flight-action";
 
 type FlatBulkFormProps = {
   action: (formData: FormData) => void | Promise<void>;
 };
 
 export function FlatBulkForm({ action }: FlatBulkFormProps) {
+  const { run, isPending } = useSingleFlightAction(action);
+
   return (
-    <form action={action} className="space-y-6">
+    <form action={run} className="space-y-6">
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="fromFlatNumber">From Flat Number</Label>
@@ -104,8 +107,8 @@ export function FlatBulkForm({ action }: FlatBulkFormProps) {
         this batch. Each flat can be adjusted individually afterward.
       </p>
 
-      <Button type="submit" className="w-full">
-        Create Flats
+      <Button type="submit" className="w-full" disabled={isPending}>
+        {isPending ? "Creating..." : "Create Flats"}
       </Button>
     </form>
   );

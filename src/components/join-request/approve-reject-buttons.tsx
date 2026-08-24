@@ -9,6 +9,7 @@ import { rejectJoinRequest } from "@/actions/join-request/reject-join-request";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useSingleFlightAction } from "@/hooks/use-single-flight-action";
 
 type ApproveRejectButtonsProps = {
   requestId: string;
@@ -21,16 +22,19 @@ export function ApproveRejectButtons({
 }: ApproveRejectButtonsProps) {
   const router = useRouter();
   const [isApproving, setIsApproving] = useState(false);
-  const [isPending, setIsPending] = useState(false);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
 
+  const { run: runApprove, isPending: isApprovePending } =
+    useSingleFlightAction(approveJoinRequest);
+  const { run: runReject, isPending: isRejectPending } =
+    useSingleFlightAction(rejectJoinRequest);
+
   async function handleConfirmApprove(formData: FormData) {
-    setIsPending(true);
     setErrors({});
 
-    const result = await approveJoinRequest(requestId, formData);
+    const result = await runApprove(requestId, formData);
 
-    setIsPending(false);
+    if (!result) return;
 
     if (!result.success) {
       setErrors(result.errors);
@@ -45,9 +49,9 @@ export function ApproveRejectButtons({
 
     if (!confirmed) return;
 
-    setIsPending(true);
-    const result = await rejectJoinRequest(requestId);
-    setIsPending(false);
+    const result = await runReject(requestId);
+
+    if (!result) return;
 
     if (!result.success) {
       alert(result.message);
@@ -116,15 +120,15 @@ export function ApproveRejectButtons({
         </div>
 
         <div className="flex gap-3">
-          <Button type="submit" size="sm" disabled={isPending}>
-            {isPending ? "Approving..." : "Confirm Approval"}
+          <Button type="submit" size="sm" disabled={isApprovePending}>
+            {isApprovePending ? "Approving..." : "Confirm Approval"}
           </Button>
 
           <Button
             type="button"
             size="sm"
             variant="outline"
-            disabled={isPending}
+            disabled={isApprovePending}
             onClick={() => {
               setIsApproving(false);
               setErrors({});
@@ -141,7 +145,7 @@ export function ApproveRejectButtons({
     <div className="flex gap-3">
       <Button
         size="sm"
-        disabled={isPending}
+        disabled={isRejectPending}
         onClick={() => setIsApproving(true)}
       >
         Approve
@@ -150,7 +154,7 @@ export function ApproveRejectButtons({
       <Button
         size="sm"
         variant="destructive"
-        disabled={isPending}
+        disabled={isRejectPending}
         onClick={handleReject}
       >
         Reject

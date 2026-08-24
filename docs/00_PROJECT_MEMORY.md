@@ -26,7 +26,7 @@ main
 
 ## Current Sprint
 
-Sprint 8 — Utility Bills
+Sprint 9 — Notices
 
 ---
 
@@ -75,11 +75,20 @@ Roadmap)
 
 ## Rent Management
 
-✅ Complete (first slice — Mark Paid only, no Partial payments)
+✅ Complete
+
+## Utility Bills
+
+✅ Complete (first slice)
+
+## Payment History
+
+✅ Complete (first slice — feeds Rent/Utility Bill status, no
+receipts/timeline view yet)
 
 ## Current Development
 
-🚧 Utility Bills
+🚧 Notices
 
 ---
 
@@ -340,9 +349,10 @@ Architecture v2.0 is considered frozen unless intentionally revised.
 - A `PENDING` Rent becomes `OVERDUE` once the month it's due in has fully
   passed and it's still unpaid (not immediately on its due date — the
   Landlord/Tenant have the whole month)
-- Marking a Rent `PAID` is a manual Landlord action ("Mark Paid" on the
-  Flat Details page's Rent card) — no `PARTIAL` support yet, since that
-  needs itemized amounts, which belongs to Payment History
+- Rent moves to `PARTIAL`/`PAID` by recording a real payment through
+  Payment History's `recordPayment` action — not a direct status flip
+  (that was the original MVP shortcut; retrofitted once Payment History
+  existed)
 - Outstanding Balance shown on Flat Details (per-Lease Rent list) and
   Building Details (total + count of flats with unpaid rent)
 - Tenants see their own Rent history (read-only) on their Flat Details
@@ -353,12 +363,42 @@ Architecture v2.0 is considered frozen unless intentionally revised.
   joining on the 20th or earlier bills that whole month; joining after
   the 20th skips it, and the first Rent period is the following month
 
+### Utility Bills
+
+- Unlike Rent, nothing is auto-generated — utility amounts vary by
+  actual usage, so a Landlord manually records each bill against an
+  active Lease (`src/actions/utility-bill/create-utility-bill.ts`): type
+  (the full `UtilityType` enum), billing month, amount, due date
+- `UtilityBill` has no `status` column in the schema (unlike `Rent`) —
+  its paid/unpaid state is always computed live from its `PaymentHistory`
+  rows via `computePaymentStatus` (`src/lib/payment-status.ts`), never
+  cached
+- Shown on Flat Details (Landlord, with Record Payment) and the Tenant's
+  own Flat page (read-only)
+
+### Payment History
+
+- Thin slice, built specifically to back Rent and Utility Bills' paid
+  status rather than as a full ledger yet
+- One shared action, `recordPayment` (`src/actions/payment/record-payment.ts`),
+  handles payments against either a `Rent` or a `UtilityBill` — it
+  creates the `PaymentHistory` row, validates the amount doesn't exceed
+  the remaining balance (so partial payments are supported and can't
+  overpay), and — only for `Rent`, since only `Rent` has a `status`
+  column to update — flips it to `PARTIAL` or `PAID`
+- `BillingTable` + `RecordPaymentButton`
+  (`src/components/billing/`) are the shared UI for both Rent and
+  Utility Bills, since they're now structurally identical: a labeled
+  period, an amount, a due date, a computed/cached status, and a
+  Record Payment action
+- Not yet built: a receipts view, or a cross-Lease payment timeline —
+  payments are currently only visible per Rent/Utility Bill row on Flat
+  Details
+
 ---
 
 # Planned Modules
 
-- Utility Bills
-- Payment History
 - Notices
 - Activity Logs
 - Reports
@@ -668,13 +708,14 @@ Correctness is preferred over speed.
 
 # Next Goal
 
-Implement Utility Bills: per-period charges (Water, Gas, Electricity,
-custom) tied to a Lease, following the same generation/status pattern
-Rent Management just established.
+Implement Notices (Phase 5 — Communication): Landlord-published
+announcements scoped to a Building or Floor, with optional scheduling,
+visible to Tenants.
 
 Future modules should reuse the same architecture and development patterns
 introduced by the Building, Floors, Flats, Tenant Profile, Join Request,
-Lease, and Rent Management modules — including baking in breadcrumb and
+Lease, Rent Management, Utility Bills, and Payment History modules —
+including baking in breadcrumb and
 back navigation from the start, and routing new Tenant-facing pages under
 the `(tenant)` route group rather than `(landlord)`.
 

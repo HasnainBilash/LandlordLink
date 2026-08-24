@@ -64,16 +64,31 @@ export async function getTenantFlatView(flatId: string) {
     },
   });
 
-  let rents: Awaited<ReturnType<typeof prisma.rent.findMany>> = [];
+  let rents: Awaited<
+    ReturnType<typeof prisma.rent.findMany<{ include: { payments: true } }>>
+  > = [];
+  let utilityBills: Awaited<
+    ReturnType<
+      typeof prisma.utilityBill.findMany<{ include: { payments: true } }>
+    >
+  > = [];
 
   if (activeLease) {
     await reconcileRentForLease(activeLease.id);
 
-    rents = await prisma.rent.findMany({
-      where: { leaseId: activeLease.id },
-      orderBy: [{ year: "desc" }, { month: "desc" }],
-    });
+    [rents, utilityBills] = await Promise.all([
+      prisma.rent.findMany({
+        where: { leaseId: activeLease.id },
+        orderBy: [{ year: "desc" }, { month: "desc" }],
+        include: { payments: true },
+      }),
+      prisma.utilityBill.findMany({
+        where: { leaseId: activeLease.id },
+        orderBy: [{ year: "desc" }, { month: "desc" }],
+        include: { payments: true },
+      }),
+    ]);
   }
 
-  return { flat, myRequests, activeLease, rents };
+  return { flat, myRequests, activeLease, rents, utilityBills };
 }

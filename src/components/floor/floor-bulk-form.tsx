@@ -3,14 +3,17 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useSingleFlightAction } from "@/hooks/use-single-flight-action";
 
 type FloorBulkFormProps = {
   action: (formData: FormData) => void | Promise<void>;
 };
 
 export function FloorBulkForm({ action }: FloorBulkFormProps) {
+  const { run, isPending } = useSingleFlightAction(action);
+
   return (
-    <form action={action} className="space-y-6">
+    <form action={run} className="space-y-6">
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="fromFloor">From Floor</Label>
@@ -44,8 +47,8 @@ export function FloorBulkForm({ action }: FloorBulkFormProps) {
         can be renamed individually afterward.
       </p>
 
-      <Button type="submit" className="w-full">
-        Create Floors
+      <Button type="submit" className="w-full" disabled={isPending}>
+        {isPending ? "Creating..." : "Create Floors"}
       </Button>
     </form>
   );

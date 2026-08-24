@@ -6,14 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { useSingleFlightAction } from "@/hooks/use-single-flight-action";
 
 type QuickSetupFormProps = {
   action: (formData: FormData) => void | Promise<void>;
 };
 
 export function QuickSetupForm({ action }: QuickSetupFormProps) {
+  const { run, isPending } = useSingleFlightAction(action);
+
   return (
-    <form action={action} className="space-y-6">
+    <form action={run} className="space-y-6">
       <Alert>
         <Info />
         <AlertTitle>This is just a starting point</AlertTitle>
@@ -129,8 +132,8 @@ export function QuickSetupForm({ action }: QuickSetupFormProps) {
         nothing is overwritten.
       </p>
 
-      <Button type="submit" className="w-full">
-        Generate Floors &amp; Flats
+      <Button type="submit" className="w-full" disabled={isPending}>
+        {isPending ? "Generating..." : "Generate Floors & Flats"}
       </Button>
     </form>
   );

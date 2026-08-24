@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useSingleFlightAction } from "@/hooks/use-single-flight-action";
 
 type BuildingFormProps = {
   action: (formData: FormData) => void | Promise<void>;
@@ -25,8 +26,10 @@ export function BuildingForm({
   submitText,
   defaultValues,
 }: BuildingFormProps) {
+  const { run, isPending } = useSingleFlightAction(action);
+
   return (
-    <form action={action} className="space-y-6">
+    <form action={run} className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="name">Building Name</Label>
 
@@ -98,8 +101,8 @@ export function BuildingForm({
         />
       </div>
 
-      <Button type="submit" className="w-full">
-        {submitText}
+      <Button type="submit" className="w-full" disabled={isPending}>
+        {isPending ? "Saving..." : submitText}
       </Button>
     </form>
   );

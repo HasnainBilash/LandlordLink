@@ -1,10 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { deleteFloor } from "@/actions/floor/delete-floor";
 
 import { Button } from "@/components/ui/button";
+import { useSingleFlightAction } from "@/hooks/use-single-flight-action";
 
 type DeleteFloorButtonProps = {
   floorId: string;
@@ -16,7 +16,7 @@ export function DeleteFloorButton({
   buildingId,
 }: DeleteFloorButtonProps) {
   const router = useRouter();
-  const [isPending, setIsPending] = useState(false);
+  const { run, isPending } = useSingleFlightAction(deleteFloor);
 
   async function handleDelete() {
     const confirmed = window.confirm(
@@ -25,11 +25,9 @@ export function DeleteFloorButton({
 
     if (!confirmed) return;
 
-    setIsPending(true);
+    const result = await run(floorId);
 
-    const result = await deleteFloor(floorId);
-
-    setIsPending(false);
+    if (!result) return;
 
     if (!result.success) {
       alert(result.message);

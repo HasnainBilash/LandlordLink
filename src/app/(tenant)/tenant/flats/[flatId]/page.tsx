@@ -10,7 +10,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BackLink } from "@/components/ui/back-link";
-import { RentTable } from "@/components/rent/rent-table";
+import { BillingTable, type BillingRow } from "@/components/billing/billing-table";
+import { MONTH_NAMES } from "@/lib/rent";
+import { UTILITY_TYPE_LABELS } from "@/lib/utility-bill";
+import { computePaymentStatus } from "@/lib/payment-status";
 
 type PageProps = {
   params: Promise<{
@@ -40,14 +43,48 @@ export default async function TenantFlatDetailsPage({ params }: PageProps) {
     notFound();
   }
 
-  const { flat, myRequests, activeLease, rents } = result;
+  const { flat, myRequests, activeLease, rents, utilityBills } = result;
 
   const floorLabel = flat.floor.name || `Floor ${flat.floor.floorNumber}`;
 
-  const displayRents = rents.map((rent) => ({
-    ...rent,
+  const now = new Date();
+
+  const rentRows: BillingRow[] = rents.map((rent) => ({
+    id: rent.id,
+    label: `${MONTH_NAMES[rent.month - 1]} ${rent.year}`,
     amount: Number(rent.amount),
+    paidTotal: rent.payments.reduce(
+      (sum, payment) => sum + Number(payment.amount),
+      0
+    ),
+    dueDate: rent.dueDate,
+    status: rent.status,
+    target: { type: "RENT", id: rent.id },
   }));
+
+  const utilityBillRows: BillingRow[] = utilityBills.map((bill) => {
+    const paidTotal = bill.payments.reduce(
+      (sum, payment) => sum + Number(payment.amount),
+      0
+    );
+
+    return {
+      id: bill.id,
+      label: `${UTILITY_TYPE_LABELS[bill.type]} — ${
+        MONTH_NAMES[bill.month - 1]
+      } ${bill.year}`,
+      amount: Number(bill.amount),
+      paidTotal,
+      dueDate: bill.dueDate,
+      status: computePaymentStatus({
+        amount: Number(bill.amount),
+        paidTotal,
+        dueDate: bill.dueDate,
+        now,
+      }),
+      target: { type: "UTILITY_BILL", id: bill.id },
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -134,8 +171,23 @@ export default async function TenantFlatDetailsPage({ params }: PageProps) {
 
             <div>
               <p className="mb-2 text-sm font-medium">Rent History</p>
-              <RentTable rents={displayRents} />
+              <BillingTable rows={rentRows} />
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeLease && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Utility Bills</CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <BillingTable
+              rows={utilityBillRows}
+              emptyMessage="No utility bills recorded yet."
+            />
           </CardContent>
         </Card>
       )}

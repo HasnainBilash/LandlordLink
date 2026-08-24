@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { endLease } from "@/actions/join-request/end-lease";
 
 import { Button } from "@/components/ui/button";
+import { useSingleFlightAction } from "@/hooks/use-single-flight-action";
 
 type EndLeaseButtonProps = {
   requestId: string;
@@ -13,7 +13,7 @@ type EndLeaseButtonProps = {
 
 export function EndLeaseButton({ requestId }: EndLeaseButtonProps) {
   const router = useRouter();
-  const [isPending, setIsPending] = useState(false);
+  const { run, isPending } = useSingleFlightAction(endLease);
 
   async function handleEndLease() {
     const confirmed = window.confirm(
@@ -22,9 +22,9 @@ export function EndLeaseButton({ requestId }: EndLeaseButtonProps) {
 
     if (!confirmed) return;
 
-    setIsPending(true);
-    const result = await endLease(requestId);
-    setIsPending(false);
+    const result = await run(requestId);
+
+    if (!result) return;
 
     if (!result.success) {
       alert(result.message);

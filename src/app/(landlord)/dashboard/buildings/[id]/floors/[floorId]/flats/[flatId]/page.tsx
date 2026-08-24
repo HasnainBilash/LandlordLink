@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 
 import { getFlat } from "@/actions/flat/get-flat";
 import { getRentsForLease } from "@/actions/rent/get-rents-for-lease";
+import { getUtilityBillsForLease } from "@/actions/utility-bill/get-utility-bills-for-lease";
 import { DeleteFlatButton } from "@/components/flat/delete-flat-button";
-import { RentTable } from "@/components/rent/rent-table";
+import { BillingTable, type BillingRow } from "@/components/billing/billing-table";
+import { AddUtilityBillForm } from "@/components/utility-bill/add-utility-bill-form";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +20,9 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { BackLink } from "@/components/ui/back-link";
 import { ApproveRejectButtons } from "@/components/join-request/approve-reject-buttons";
 import { EndLeaseButton } from "@/components/join-request/end-lease-button";
+import { MONTH_NAMES } from "@/lib/rent";
+import { UTILITY_TYPE_LABELS } from "@/lib/utility-bill";
+import { computePaymentStatus } from "@/lib/payment-status";
 
 type PageProps = {
   params: Promise<{
@@ -57,11 +62,47 @@ export default async function FlatDetailsPage({ params }: PageProps) {
 
   const activeLease = flat.leases[0];
 
-  const rents = activeLease
+  const now = new Date();
+
+  const rentRows: BillingRow[] = activeLease
     ? (await getRentsForLease(activeLease.id)).map((rent) => ({
-        ...rent,
+        id: rent.id,
+        label: `${MONTH_NAMES[rent.month - 1]} ${rent.year}`,
         amount: Number(rent.amount),
+        paidTotal: rent.payments.reduce(
+          (sum, payment) => sum + Number(payment.amount),
+          0
+        ),
+        dueDate: rent.dueDate,
+        status: rent.status,
+        target: { type: "RENT", id: rent.id },
       }))
+    : [];
+
+  const utilityBillRows: BillingRow[] = activeLease
+    ? (await getUtilityBillsForLease(activeLease.id)).map((bill) => {
+        const paidTotal = bill.payments.reduce(
+          (sum, payment) => sum + Number(payment.amount),
+          0
+        );
+
+        return {
+          id: bill.id,
+          label: `${UTILITY_TYPE_LABELS[bill.type]} — ${
+            MONTH_NAMES[bill.month - 1]
+          } ${bill.year}`,
+          amount: Number(bill.amount),
+          paidTotal,
+          dueDate: bill.dueDate,
+          status: computePaymentStatus({
+            amount: Number(bill.amount),
+            paidTotal,
+            dueDate: bill.dueDate,
+            now,
+          }),
+          target: { type: "UTILITY_BILL", id: bill.id },
+        };
+      })
     : [];
 
   return (
@@ -217,7 +258,25 @@ export default async function FlatDetailsPage({ params }: PageProps) {
           </CardHeader>
 
           <CardContent>
-            <RentTable rents={rents} canManage />
+            <BillingTable rows={rentRows} canManage />
+          </CardContent>
+        </Card>
+      )}
+
+      {activeLease && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Utility Bills</CardTitle>
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+            <AddUtilityBillForm leaseId={activeLease.id} />
+
+            <BillingTable
+              rows={utilityBillRows}
+              canManage
+              emptyMessage="No utility bills recorded yet."
+            />
           </CardContent>
         </Card>
       )}

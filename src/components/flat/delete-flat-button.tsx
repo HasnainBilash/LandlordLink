@@ -1,10 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { deleteFlat } from "@/actions/flat/delete-flat";
 
 import { Button } from "@/components/ui/button";
+import { useSingleFlightAction } from "@/hooks/use-single-flight-action";
 
 type DeleteFlatButtonProps = {
   flatId: string;
@@ -18,7 +18,7 @@ export function DeleteFlatButton({
   floorId,
 }: DeleteFlatButtonProps) {
   const router = useRouter();
-  const [isPending, setIsPending] = useState(false);
+  const { run, isPending } = useSingleFlightAction(deleteFlat);
 
   async function handleDelete() {
     const confirmed = window.confirm(
@@ -27,11 +27,9 @@ export function DeleteFlatButton({
 
     if (!confirmed) return;
 
-    setIsPending(true);
+    const result = await run(flatId);
 
-    const result = await deleteFlat(flatId);
-
-    setIsPending(false);
+    if (!result) return;
 
     if (!result.success) {
       alert(result.message);

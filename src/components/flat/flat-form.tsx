@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useSingleFlightAction } from "@/hooks/use-single-flight-action";
 
 type FlatFormProps = {
   action: (formData: FormData) => void | Promise<void>;
@@ -23,8 +24,10 @@ export function FlatForm({
   submitText,
   defaultValues,
 }: FlatFormProps) {
+  const { run, isPending } = useSingleFlightAction(action);
+
   return (
-    <form action={action} className="space-y-6">
+    <form action={run} className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="flatNumber">Flat Number</Label>
 
@@ -96,8 +99,8 @@ export function FlatForm({
         </div>
       </div>
 
-      <Button type="submit" className="w-full">
-        {submitText}
+      <Button type="submit" className="w-full" disabled={isPending}>
+        {isPending ? "Saving..." : submitText}
       </Button>
     </form>
   );

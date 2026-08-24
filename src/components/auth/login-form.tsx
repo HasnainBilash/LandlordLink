@@ -14,7 +14,7 @@ const initialState: LoginState = {
 };
 
 export function LoginForm() {
-  const [state, action] = useActionState(loginUser, initialState);
+  const [state, action, isPending] = useActionState(loginUser, initialState);
 
   return (
     <form action={action} className="space-y-5">
@@ -54,8 +54,8 @@ export function LoginForm() {
         />
       </div>
 
-      <Button type="submit" className="w-full">
-        Sign In
+      <Button type="submit" className="w-full" disabled={isPending}>
+        {isPending ? "Signing In..." : "Sign In"}
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">

@@ -84,13 +84,14 @@ Lease                   (schema + application complete — created/ended
 
 ↓
 
-Rent                    (schema + application partial — auto-generated
-                         per month, Mark Paid only; no Partial payments
-                         or Utility Bills yet)
+Rent                    (schema + application complete — auto-generated
+                         per month; PARTIAL/PAID via Payment History)
 
 ↓
 
-PaymentHistory          (schema only — not yet built)
+PaymentHistory          (schema + application partial — records
+                         payments against Rent/UtilityBill; no
+                         receipts/timeline view yet)
 
 ```
 
@@ -102,7 +103,9 @@ TenantProfile           (schema + application complete)
 
 JoinRequest             (schema + application complete)
 
-UtilityBill             (schema only — not yet built)
+UtilityBill             (schema + application partial — manually
+                         recorded per Lease; no status column, always
+                         computed from PaymentHistory)
 
 Notice                  (schema only — not yet built)
 
@@ -613,9 +616,10 @@ Status Transitions
 A `PENDING` Rent flips to `OVERDUE` once the month it's due in has fully
 passed (i.e. once the next month starts) and it's still unpaid — not
 immediately on its due date, so the Landlord/Tenant have the whole month
-to settle it. Marking a Rent `PAID` is a manual Landlord action (`Mark
-Paid` — `src/actions/rent/mark-rent-paid.ts`); `PARTIAL` is defined in
-the schema but not yet reachable from the UI — see Payment History.
+to settle it. `PARTIAL`/`PAID` are set by `recordPayment`
+(`src/actions/payment/record-payment.ts`) whenever a payment is recorded
+against this Rent — `status` is a cache kept in sync by that action, not
+the source of truth; the real record is the linked `PaymentHistory` rows.
 
 ---
 
@@ -623,7 +627,7 @@ the schema but not yet reachable from the UI — see Payment History.
 
 Purpose
 
-Stores monthly utility charges.
+Stores one billed period of a utility charge for a Lease.
 
 Supported Types
 
@@ -648,20 +652,56 @@ year
 
 ```
 
+Recorded
+
+Manually, by the Landlord, against an `ACTIVE` Lease
+(`src/actions/utility-bill/create-utility-bill.ts`) — type, billing
+month, amount, and due date are all entered by hand. Unlike Rent, there
+is no auto-generation: utility amounts vary by actual usage each month,
+so there is no fixed amount to backfill.
+
+No Status Column
+
+Unlike Rent, `UtilityBill` has no `status` field. Its paid/unpaid state
+is always computed live from its `PaymentHistory` rows —
+`computePaymentStatus` in `src/lib/payment-status.ts` — never cached.
+This is the design `Rent.status` deviates from as a denormalized
+convenience; `UtilityBill` follows the database's stated "avoid
+duplication" principle directly.
+
 ---
 
 # PaymentHistory
 
 Purpose
 
-Stores completed payments.
+Stores one payment made against either a Rent or a Utility Bill.
 
 Supports
 
-- Rent
-- Utility Bills
+- Rent (`rentId`)
+- Utility Bills (`utilityBillId`)
 
-A payment belongs to exactly one payment type.
+A payment belongs to exactly one payment type — `rentId` and
+`utilityBillId` are mutually exclusive, never both set on the same row.
+
+Recorded
+
+Via the shared `recordPayment` action
+(`src/actions/payment/record-payment.ts`), used by both the Rent and
+Utility Bills "Record Payment" UI (`src/components/billing/`). Supports
+partial payments — the action validates the amount doesn't exceed the
+target's remaining balance (`amount` minus the sum of its existing
+payments), so a bill can never be overpaid. Recording a payment against
+a Rent also updates that Rent's cached `status`; a Utility Bill has no
+such field to update, since its status is always computed from these
+rows directly.
+
+Not Yet Built
+
+A receipts view and a cross-Lease payment timeline — payments are
+currently only visible per Rent/Utility Bill row on Flat Details, not
+in a dedicated ledger.
 
 ---
 

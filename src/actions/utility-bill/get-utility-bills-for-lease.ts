@@ -2,9 +2,8 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { reconcileRentForLease } from "@/lib/reconcile-rent";
 
-export async function getRentsForLease(leaseId: string) {
+export async function getUtilityBillsForLease(leaseId: string) {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -28,9 +27,7 @@ export async function getRentsForLease(leaseId: string) {
     return [];
   }
 
-  await reconcileRentForLease(leaseId);
-
-  return prisma.rent.findMany({
+  return prisma.utilityBill.findMany({
     where: { leaseId },
     orderBy: [{ year: "desc" }, { month: "desc" }],
     include: { payments: true },

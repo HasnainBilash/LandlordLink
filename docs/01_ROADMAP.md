@@ -208,7 +208,7 @@ writes when a tenancy is actually closed out, not as a planned term end.
 
 Status
 
-✅ Completed (first slice — Mark Paid only, no Partial payments yet)
+✅ Completed
 
 Features
 
@@ -219,8 +219,8 @@ Features
   month, joining after the 20th skips it and billing starts the
   following month
 - Rent Status — `PENDING` → `OVERDUE` once the due month has fully
-  passed unpaid; → `PAID` via a manual Landlord action ("Mark Paid").
-  `PARTIAL` is defined but not reachable yet — needs Payment History
+  passed unpaid; → `PARTIAL`/`PAID` by recording a real payment via
+  Payment History's `recordPayment` action (supports partial payments)
 - Due Dates — 1st of each covered month
 - Outstanding Balance — shown per Flat (Rent card on Flat Details) and
   per Building (Overview card, total + count of flats with unpaid rent)
@@ -236,14 +236,20 @@ Building Details page already, feeding into Phase 6 Reports.
 
 Status
 
-⬜ Planned
+✅ Completed (first slice)
 
 Features
 
-- Water
-- Gas
-- Electricity
-- Custom Utilities
+- Water, Gas, Electricity, Internet, Security, Custom ("Other") — the
+  full `UtilityType` enum
+- Landlord manually records each bill against an active Lease (type,
+  billing month, amount, due date) — unlike Rent, utility amounts vary
+  by actual usage, so nothing is auto-generated with a guessed amount
+- No `status` column on `UtilityBill` by design — paid/unpaid is always
+  computed from its `PaymentHistory` rows (see Payment History), via
+  `computePaymentStatus` in `src/lib/payment-status.ts`
+- Shown on Flat Details (Landlord, with Record Payment) and the
+  Tenant's own Flat page (read-only)
 
 ---
 
@@ -251,14 +257,29 @@ Features
 
 Status
 
-⬜ Planned
+✅ Completed (first slice — feeds Rent and Utility Bills status, no
+receipts/timeline view yet)
 
 Features
 
-- Payment Records
-- Receipts
-- Payment Status
-- Payment Timeline
+- Payment Records — `recordPayment` (`src/actions/payment/record-payment.ts`)
+  creates a `PaymentHistory` row against either a `Rent` or a
+  `UtilityBill`, capped at the remaining balance (supports partial
+  payments)
+- Payment Status — recording a payment against a `Rent` updates its
+  cached `status` (`PARTIAL`/`PAID`); a `UtilityBill` has no such column,
+  so its status is always computed live from its payments
+- Optional transaction reference recorded per payment
+- Receipts — planned
+- Payment Timeline (a dedicated cross-Lease view of every payment ever
+  made) — planned; today, payments are only visible per Rent/Utility
+  Bill row on Flat Details
+
+Note
+
+This replaced Rent Management's original "Mark Paid" shortcut (a direct
+status flip with no payment record) — Rent now goes through the same
+`recordPayment` action Utility Bills uses.
 
 ---
 
@@ -350,17 +371,18 @@ A module is considered complete only when all of the above are implemented and d
 
 Current Sprint
 
-🚧 Utility Bills
+🚧 Notices (Phase 5 — Communication)
 
 Goal
 
-Follow Rent Management's model (per-period charges tied to a Lease,
-Pending/Overdue/Paid status) for Water, Gas, Electricity, and custom
-utility charges.
+Let a Landlord publish announcements scoped to a Building, a Floor, or
+scheduled for later, visible to Tenants — the first Phase 5 module now
+that Phase 4's financial core (Lease, Rent, Utility Bills, Payment
+History) is in place.
 
-Utility Bills should follow the same architecture and conventions
-established by the Building, Floors, Flats, Tenant Profile, Join
-Request, Lease, and Rent Management modules.
+Notices should follow the same architecture and conventions established
+by the Building, Floors, Flats, Tenant Profile, Join Request, Lease,
+Rent Management, Utility Bills, and Payment History modules.
 
 ---
 
