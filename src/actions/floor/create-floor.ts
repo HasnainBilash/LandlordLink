@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 import { createFloorSchema } from "@/lib/validations/floor";
+import { logActivity } from "@/lib/log-activity";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -81,6 +82,15 @@ export async function createFloor(
 
     throw error;
   }
+
+  await logActivity({
+    userId: session.user.id,
+    action: "CREATE",
+    entity: "Floor",
+    entityId: floor.id,
+    buildingId,
+    description: `Created floor ${floor.floorNumber}.`,
+  });
 
   redirect(`/dashboard/buildings/${buildingId}/floors/${floor.id}`);
 }

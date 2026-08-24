@@ -113,6 +113,7 @@ model Building {
   floors       Floor[]
   joinRequests JoinRequest[]
   notices      Notice[]
+  activityLogs ActivityLog[]
 
   @@index([ownerId])
   @@index([status])
@@ -397,6 +398,8 @@ model ActivityLog {
 
   userId String
 
+  buildingId String?
+
   action String
 
   entity String
@@ -407,8 +410,10 @@ model ActivityLog {
 
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  building Building? @relation(fields: [buildingId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([buildingId])
   @@index([createdAt])
 }

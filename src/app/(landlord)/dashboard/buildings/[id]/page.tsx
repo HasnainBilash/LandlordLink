@@ -84,6 +84,12 @@ export default async function BuildingDetailsPage({
             </Button>
           </Link>
 
+          <Link href={`/dashboard/buildings/${building.id}/activity`}>
+            <Button variant="outline">
+              Activity
+            </Button>
+          </Link>
+
           <Link href={`/dashboard/buildings/${building.id}/edit`}>
             <Button>
               Edit Building

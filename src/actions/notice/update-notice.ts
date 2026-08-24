@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 import { createNoticeSchema } from "@/lib/validations/notice";
+import { logActivity } from "@/lib/log-activity";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -65,6 +66,15 @@ export async function updateNotice(
       audience: parsed.data.audience,
       expiresAt: parsed.data.expiresAt ?? null,
     },
+  });
+
+  await logActivity({
+    userId: session.user.id,
+    action: "UPDATE",
+    entity: "Notice",
+    entityId: id,
+    buildingId: notice.buildingId,
+    description: `Updated notice "${parsed.data.title}".`,
   });
 
   redirect(`/dashboard/buildings/${notice.buildingId}/notices`);

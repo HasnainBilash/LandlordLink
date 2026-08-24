@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 import { createFlatSchema } from "@/lib/validations/flat";
+import { logActivity } from "@/lib/log-activity";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -91,6 +92,15 @@ export async function createFlat(
 
     throw error;
   }
+
+  await logActivity({
+    userId: session.user.id,
+    action: "CREATE",
+    entity: "Flat",
+    entityId: flat.id,
+    buildingId,
+    description: `Created flat ${flat.flatNumber}.`,
+  });
 
   redirect(
     `/dashboard/buildings/${buildingId}/floors/${floorId}/flats/${flat.id}`

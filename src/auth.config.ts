@@ -4,6 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/lib/log-activity";
 
 export default {
   providers: [
@@ -77,5 +78,18 @@ export default {
     async redirect({ baseUrl }) {
       return baseUrl;
     }
+  },
+
+  events: {
+    async signIn({ user }) {
+      if (!user.id) return;
+
+      await logActivity({
+        userId: user.id,
+        action: "LOGIN",
+        entity: "User",
+        entityId: user.id,
+      });
+    },
   },
 } satisfies NextAuthConfig;

@@ -26,7 +26,7 @@ main
 
 ## Current Sprint
 
-Sprint 10 — Activity Logs
+Sprint 11 — Reports (Phase 6)
 
 ---
 
@@ -91,9 +91,14 @@ receipts/timeline view yet)
 ✅ Complete (Building-scoped only, no Floor Notices; "Scheduled" means
 auto-expiry, not future-publish — see Roadmap)
 
+## Activity Logs
+
+✅ Complete (representative instrumentation, not literally every
+action — see Roadmap)
+
 ## Current Development
 
-🚧 Activity Logs
+🚧 Reports (Phase 6)
 
 ---
 
@@ -430,11 +435,36 @@ Architecture v2.0 is considered frozen unless intentionally revised.
   not on a `<Link>` prefetch, so hovering the nav link doesn't silently
   clear the badge before the tenant actually opens the page
 
+### Activity Logs
+
+- `ActivityLog` gained a `buildingId` column (migration) — the model
+  originally only had `userId` (the actor), which couldn't answer
+  "what happened in this building" when the actor was a Tenant (e.g. a
+  Join Request), only "what did this specific user do"
+- `src/lib/log-activity.ts` is a plain helper (not a server action),
+  called directly from within existing server actions right before
+  they return — not a generic middleware/wrapper, so each call site
+  states its own action/entity/description explicitly
+- Instrumented: Login (via `events.signIn` in `src/auth.config.ts`,
+  since `loginUser` itself can't observe success — `signIn()` redirects
+  before returning), Register, Building create/update/delete, Floor/
+  Flat create/delete, Join Request create/approve/reject, End Lease,
+  Notice create/update/delete, recording a Rent/Utility payment, and
+  adding a Utility Bill. This is representative coverage, chosen to
+  match the original roadmap examples (Login, Building Created/Deleted,
+  Lease Approved, Payment Recorded) extended to this project's actual
+  entities — not literally every mutating action in the app
+- Two Landlord-facing views, not a Tenant-facing one — this is an
+  oversight/audit feature: `/dashboard/buildings/[id]/activity`
+  (strictly building-scoped) and `/dashboard/activity` (global — a
+  Landlord's own actions, including buildingless ones like Login, plus
+  everything that happened across every building they own, regardless
+  of actor)
+
 ---
 
 # Planned Modules
 
-- Activity Logs
 - Reports
 - Analytics
 
@@ -586,6 +616,14 @@ Protected (Landlord)
 
 ```
 /dashboard/buildings/[id]/notices/[noticeId]/edit
+```
+
+```
+/dashboard/activity
+```
+
+```
+/dashboard/buildings/[id]/activity
 ```
 
 Protected (Tenant)
@@ -758,15 +796,16 @@ Correctness is preferred over speed.
 
 # Next Goal
 
-Implement Activity Logs (Phase 5 — Communication): record important
-user/building activity (login, building created/deleted, lease approved,
-payment recorded) for auditing — the last Phase 5 module before Phase 6
-Reports.
+Phase 5 (Communication) is complete. Start Phase 6 — Reports: Building
+Statistics, Occupancy Reports, Revenue Reports, Outstanding Payments,
+Monthly Reports — surfacing data already collected by Rent, Utility
+Bills, Payment History, Join Requests, and Activity Logs, rather than
+collecting anything new.
 
 Future modules should reuse the same architecture and development patterns
 introduced by the Building, Floors, Flats, Tenant Profile, Join Request,
-Lease, Rent Management, Utility Bills, Payment History, and Notices
-modules —
+Lease, Rent Management, Utility Bills, Payment History, Notices, and
+Activity Logs modules —
 including baking in breadcrumb and
 back navigation from the start, and routing new Tenant-facing pages under
 the `(tenant)` route group rather than `(landlord)`.

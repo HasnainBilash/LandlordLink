@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 import { recordPaymentSchema } from "@/lib/validations/payment";
+import { logActivity } from "@/lib/log-activity";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -92,7 +93,7 @@ export async function recordPayment(
     };
   }
 
-  await prisma.paymentHistory.create({
+  const payment = await prisma.paymentHistory.create({
     data: {
       paymentType: target.type === "RENT" ? "RENT" : "UTILITY",
       rentId: target.type === "RENT" ? target.id : null,
@@ -112,6 +113,15 @@ export async function recordPayment(
       },
     });
   }
+
+  await logActivity({
+    userId: session.user.id,
+    action: "PAY",
+    entity: target.type === "RENT" ? "Rent" : "UtilityBill",
+    entityId: target.id,
+    buildingId: bill.lease.flat.floor.buildingId,
+    description: `Recorded payment of $${parsed.data.amount.toFixed(2)} (${payment.id}).`,
+  });
 
   revalidatePath(
     `/dashboard/buildings/${bill.lease.flat.floor.buildingId}/floors/${bill.lease.flat.floorId}/flats/${bill.lease.flatId}`

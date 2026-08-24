@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 import { createUtilityBillSchema } from "@/lib/validations/utility-bill";
+import { logActivity } from "@/lib/log-activity";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -72,8 +73,10 @@ export async function createUtilityBill(
     };
   }
 
+  let bill;
+
   try {
-    await prisma.utilityBill.create({
+    bill = await prisma.utilityBill.create({
       data: {
         leaseId,
         type: parsed.data.type,
@@ -99,6 +102,15 @@ export async function createUtilityBill(
 
     throw error;
   }
+
+  await logActivity({
+    userId: session.user.id,
+    action: "CREATE",
+    entity: "UtilityBill",
+    entityId: bill.id,
+    buildingId: lease.flat.floor.buildingId,
+    description: `Added ${parsed.data.type} bill for ${parsed.data.month}/${parsed.data.year}.`,
+  });
 
   revalidatePath(
     `/dashboard/buildings/${lease.flat.floor.buildingId}/floors/${lease.flat.floorId}/flats/${lease.flatId}`

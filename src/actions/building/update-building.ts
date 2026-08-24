@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 import { createBuildingSchema } from "@/lib/validations/building";
+import { logActivity } from "@/lib/log-activity";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -65,6 +66,15 @@ export async function updateBuilding(
       errors: {},
     };
   }
+
+  await logActivity({
+    userId: session.user.id,
+    action: "UPDATE",
+    entity: "Building",
+    entityId: id,
+    buildingId: id,
+    description: `Updated building "${parsed.data.name}".`,
+  });
 
   redirect(`/dashboard/buildings/${id}`);
 }

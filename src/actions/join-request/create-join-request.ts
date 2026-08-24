@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 import { createJoinRequestSchema } from "@/lib/validations/join-request";
+import { logActivity } from "@/lib/log-activity";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -113,13 +114,22 @@ export async function createJoinRequest(
     };
   }
 
-  await prisma.joinRequest.create({
+  const joinRequest = await prisma.joinRequest.create({
     data: {
       tenantId: tenantProfile.id,
       buildingId: flat.floor.buildingId,
       flatId,
       message: parsed.data.message || null,
     },
+  });
+
+  await logActivity({
+    userId: session.user.id,
+    action: "CREATE",
+    entity: "JoinRequest",
+    entityId: joinRequest.id,
+    buildingId: flat.floor.buildingId,
+    description: `Requested flat ${flat.flatNumber}.`,
   });
 
   redirect("/tenant/requests");

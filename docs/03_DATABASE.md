@@ -110,7 +110,8 @@ UtilityBill             (schema + application partial — manually
 Notice                  (schema + application complete — Building-scoped
                          only, hard delete, no Floor Notices)
 
-ActivityLog
+ActivityLog             (schema + application complete — representative
+                         instrumentation, not literally every action)
 
 ```
 
@@ -327,7 +328,9 @@ Building
 
 ├── has many JoinRequests
 
-└── has many Notices
+├── has many Notices
+
+└── has many ActivityLogs
 
 ```
 
@@ -755,17 +758,42 @@ nothing to soft-delete into.
 
 Purpose
 
-Records important user activity.
+Records important user activity, for auditing.
 
-Examples
+Building Scoping
 
-- Login
-- Building Created
-- Building Deleted
-- Lease Approved
-- Payment Recorded
+Gained a `buildingId` column (nullable, `onDelete: SetNull`) beyond the
+original `userId`. Without it, "what happened in this building" was
+unanswerable whenever the actor wasn't the Landlord — a Tenant's Join
+Request, for example. `onDelete: SetNull` rather than `Cascade`
+(the pattern every other Building relation uses) is deliberate: an
+audit trail shouldn't disappear if the row it points to is ever
+removed, and losing the building link is preferable to losing the log
+entry itself. In practice Buildings are only ever soft-deleted, so this
+rarely fires.
 
-Useful for auditing.
+Written By
+
+`src/lib/log-activity.ts` — a plain function, not a server action or a
+generic wrapper. It's called explicitly from within each instrumented
+action, right before that action returns, with its own
+action/entity/description. Login is the exception: it's written from
+`events.signIn` in `src/auth.config.ts`, since `loginUser`
+(`src/actions/login.ts`) can't observe a successful sign-in itself —
+`signIn()` redirects before the action's own code after it would run.
+
+Examples (Instrumented)
+
+- Login, Register
+- Building Created / Updated / Deleted
+- Floor Created / Deleted, Flat Created / Deleted
+- Join Request Created / Approved / Rejected, Lease Ended
+- Notice Created / Updated / Deleted
+- Rent/Utility Bill Payment Recorded, Utility Bill Created
+
+This is representative coverage matching the original example list
+above, extended to this project's actual entities — not literally every
+mutating action in the codebase.
 
 ---
 

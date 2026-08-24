@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 
 import { createBuildingSchema } from "@/lib/validations/building";
 import { generateAccessCode } from "@/lib/generate-access-code";
+import { logActivity } from "@/lib/log-activity";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -82,6 +83,15 @@ export async function createBuilding(
       errors: {},
     };
   }
+
+  await logActivity({
+    userId: session.user.id,
+    action: "CREATE",
+    entity: "Building",
+    entityId: building.id,
+    buildingId: building.id,
+    description: `Created building "${building.name}".`,
+  });
 
   redirect(`/dashboard/buildings/${building.id}`);
 }

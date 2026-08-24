@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations/auth";
+import { logActivity } from "@/lib/log-activity";
 
 export type RegisterState = {
   success: boolean;
@@ -73,13 +74,21 @@ export async function registerUser(
 
     const passwordHash = await bcrypt.hash(parsed.data.password, 12);
 
-    await prisma.user.create({
+    const newUser = await prisma.user.create({
       data: {
         name: parsed.data.name,
         email: parsed.data.email,
         passwordHash,
         role: parsed.data.role,
       },
+    });
+
+    await logActivity({
+      userId: newUser.id,
+      action: "REGISTER",
+      entity: "User",
+      entityId: newUser.id,
+      description: `Registered as ${parsed.data.role}.`,
     });
 
     return {

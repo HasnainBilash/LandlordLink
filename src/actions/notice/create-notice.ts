@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 import { createNoticeSchema } from "@/lib/validations/notice";
+import { logActivity } from "@/lib/log-activity";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -56,7 +57,7 @@ export async function createNotice(
     };
   }
 
-  await prisma.notice.create({
+  const notice = await prisma.notice.create({
     data: {
       buildingId,
       title: parsed.data.title,
@@ -64,6 +65,15 @@ export async function createNotice(
       audience: parsed.data.audience,
       expiresAt: parsed.data.expiresAt ?? null,
     },
+  });
+
+  await logActivity({
+    userId: session.user.id,
+    action: "CREATE",
+    entity: "Notice",
+    entityId: notice.id,
+    buildingId,
+    description: `Published notice "${notice.title}".`,
   });
 
   redirect(`/dashboard/buildings/${buildingId}/notices`);

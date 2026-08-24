@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/lib/log-activity";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -39,6 +40,15 @@ export async function deleteNotice(id: string): Promise<ActionResult> {
   // Flat — there's nothing to soft-delete into, so this is a hard delete.
   await prisma.notice.delete({
     where: { id },
+  });
+
+  await logActivity({
+    userId: session.user.id,
+    action: "DELETE",
+    entity: "Notice",
+    entityId: id,
+    buildingId: notice.buildingId,
+    description: `Deleted notice "${notice.title}".`,
   });
 
   revalidatePath(`/dashboard/buildings/${notice.buildingId}/notices`);

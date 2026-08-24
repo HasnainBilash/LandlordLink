@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/lib/log-activity";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -62,6 +63,15 @@ export async function endLease(id: string): Promise<ActionResult> {
         ]
       : []),
   ]);
+
+  await logActivity({
+    userId: session.user.id,
+    action: "END",
+    entity: "Lease",
+    entityId: activeLease?.id,
+    buildingId: joinRequest.buildingId,
+    description: "Ended lease.",
+  });
 
   revalidatePath("/dashboard/requests");
   revalidatePath(`/dashboard/buildings/${joinRequest.buildingId}/requests`);

@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/lib/log-activity";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -36,6 +37,15 @@ export async function deleteBuilding(
       errors: {},
     };
   }
+
+  await logActivity({
+    userId: session.user.id,
+    action: "DELETE",
+    entity: "Building",
+    entityId: id,
+    buildingId: id,
+    description: "Deleted building.",
+  });
 
   return {
     success: true,

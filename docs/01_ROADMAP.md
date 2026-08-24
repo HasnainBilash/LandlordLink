@@ -327,13 +327,27 @@ feeding a cross-building view into Phase 6 Reports is still future work.
 
 Status
 
-⬜ Planned
+✅ Completed
 
 Features
 
-- User Activity
-- Building Activity
-- Audit Trail
+- Building Activity — `ActivityLog` gained a `buildingId` column
+  (migration) specifically so a Landlord can see everything that
+  happened in one building regardless of who did it, including a
+  Tenant's own actions like submitting a Join Request. Page:
+  `/dashboard/buildings/[id]/activity`
+- User Activity — folded into one global feed
+  (`/dashboard/activity`, linked from the sidebar) that shows both the
+  Landlord's own actions (including buildingless events like Login/
+  Register) and everything happening across every building they own,
+  rather than a second, separate personal-only view
+- Audit Trail — `src/lib/log-activity.ts` is called from the key
+  mutating actions across the app: Login/Register, Building create/
+  update/delete, Floor/Flat create/delete, Join Request create/
+  approve/reject, ending a Lease, Notice create/update/delete,
+  recording a Rent/Utility payment, and adding a Utility Bill. This is
+  representative coverage, not literally every action in the app
+- No Tenant-facing view — this is a Landlord oversight/audit feature
 
 ---
 
@@ -391,18 +405,20 @@ A module is considered complete only when all of the above are implemented and d
 
 Current Sprint
 
-🚧 Activity Logs (Phase 5 — Communication)
+🚧 Phase 6 — Reports
 
 Goal
 
-Record important user/building activity (login, building created/
-deleted, lease approved, payment recorded) for auditing — the second
-and last Phase 5 module before Phase 6 Reports.
+Phase 5 (Communication) is now complete. Start Phase 6: Building
+Statistics, Occupancy Reports, Revenue Reports, Outstanding Payments,
+and Monthly Reports — surfacing the data already being collected by
+every module so far (Rent, Utility Bills, Payment History, Join
+Requests, Activity Logs) rather than collecting anything new.
 
-Activity Logs should follow the same architecture and conventions
-established by the Building, Floors, Flats, Tenant Profile, Join
-Request, Lease, Rent Management, Utility Bills, Payment History, and
-Notices modules.
+Reports should follow the same architecture and conventions established
+by the Building, Floors, Flats, Tenant Profile, Join Request, Lease,
+Rent Management, Utility Bills, Payment History, Notices, and Activity
+Logs modules.
 
 ---
 

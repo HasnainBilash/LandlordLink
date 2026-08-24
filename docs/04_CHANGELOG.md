@@ -10,9 +10,53 @@ The format loosely follows Keep a Changelog while remaining focused on project d
 
 ## Planned
 
-- Activity Logs
 - Reports
 - Analytics
+
+---
+
+# [v2.9.0] - Activity Logs
+
+## Decided
+
+- Added `buildingId` to `ActivityLog` (migration) so a Landlord can see
+  everything that happened in one building regardless of who did it —
+  the original schema only had `userId` (the actor), which couldn't
+  answer that whenever a Tenant was the one acting (e.g. a Join
+  Request)
+- `onDelete: SetNull` on that new relation, not `Cascade` like every
+  other Building relation — an audit trail shouldn't vanish if its
+  building link ever does
+
+## Added
+
+- `src/lib/log-activity.ts`, a plain helper called explicitly from
+  each instrumented action (not a generic wrapper/middleware)
+- Instrumented: Login (via `events.signIn` in `src/auth.config.ts`,
+  since `loginUser` can't observe its own success — `signIn()`
+  redirects first), Register, Building create/update/delete, Floor/
+  Flat create/delete, Join Request create/approve/reject, End Lease,
+  Notice create/update/delete, Rent/Utility Bill payments, Utility
+  Bill creation
+- Two Landlord-only views: `/dashboard/activity` (global — the
+  Landlord's own actions plus everything across every building they
+  own) and `/dashboard/buildings/[id]/activity` (one building only),
+  both linked from the sidebar / Building Details respectively
+
+## Not Included
+
+- Not literally every mutating action in the app — representative
+  coverage matching the original roadmap examples, extended to this
+  project's actual entities
+- No Tenant-facing view — this is a Landlord audit/oversight feature
+
+## Documentation
+
+Updated
+
+- Project Memory, Roadmap (Activity Logs marked complete; Phase 6 —
+  Reports now current sprint), Database (`ActivityLog` moved to
+  schema + application complete, documented the `buildingId` addition)
 
 ---
 

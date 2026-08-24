@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 import { approveJoinRequestSchema } from "@/lib/validations/lease";
+import { logActivity } from "@/lib/log-activity";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -59,7 +60,7 @@ export async function approveJoinRequest(
     };
   }
 
-  await prisma.$transaction([
+  const [, , , lease] = await prisma.$transaction([
     prisma.joinRequest.update({
       where: { id },
       data: { status: "APPROVED" },
@@ -86,6 +87,15 @@ export async function approveJoinRequest(
       },
     }),
   ]);
+
+  await logActivity({
+    userId: session.user.id,
+    action: "APPROVE",
+    entity: "JoinRequest",
+    entityId: id,
+    buildingId: joinRequest.buildingId,
+    description: `Approved join request and created lease ${lease.id}.`,
+  });
 
   revalidatePath("/dashboard/requests");
   revalidatePath(`/dashboard/buildings/${joinRequest.buildingId}/requests`);
