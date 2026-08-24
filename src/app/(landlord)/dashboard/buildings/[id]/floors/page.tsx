@@ -65,7 +65,7 @@ export default async function FloorsPage({ params }: PageProps) {
       {floors.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            This building doesn't have any floors yet.
+            This building doesn&apos;t have any floors yet.
           </CardContent>
         </Card>
       ) : (

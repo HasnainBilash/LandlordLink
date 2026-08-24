@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
-import { loginUser } from "@/actions/login";
+import { loginUser, type LoginState } from "@/actions/login";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const initialState = {
+const initialState: LoginState = {
   success: false,
 };
 
@@ -59,7 +59,7 @@ export function LoginForm() {
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">
-        Don't have an account?{" "}
+        Don&apos;t have an account?{" "}
         <Link
           href="/register"
           className="font-medium text-primary hover:underline"

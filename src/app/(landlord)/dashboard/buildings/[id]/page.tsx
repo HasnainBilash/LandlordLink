@@ -68,6 +68,12 @@ export default async function BuildingDetailsPage({
             </Button>
           </Link>
 
+          <Link href={`/dashboard/buildings/${building.id}/requests`}>
+            <Button variant="outline">
+              View Requests
+            </Button>
+          </Link>
+
           <Link href={`/dashboard/buildings/${building.id}/edit`}>
             <Button>
               Edit Building
@@ -79,6 +85,33 @@ export default async function BuildingDetailsPage({
           />
         </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Access Code</CardTitle>
+        </CardHeader>
+
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Give this code to prospective tenants after they&apos;ve contacted you
+            directly. They&apos;ll need it to submit a request for any flat in
+            this building — it prevents strangers from mass-requesting
+            without ever speaking to you.
+          </p>
+
+          <p className="mt-3 font-mono text-2xl font-bold tracking-widest">
+            {building.accessCode ?? "—"}
+          </p>
+
+          {!building.accessCode && (
+            <p className="mt-2 text-sm text-destructive">
+              This building has no access code yet (it was created before
+              this feature existed), so tenants can&apos;t submit requests
+              for it. Run the backfill script to generate one.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

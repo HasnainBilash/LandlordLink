@@ -37,7 +37,7 @@ async function main() {
     },
   });
 
-  const tenant = await prisma.tenantProfile.create({
+  await prisma.tenantProfile.create({
     data: {
       userId: tenantUser.id,
       occupation: "Software Engineer",

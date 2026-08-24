@@ -5,6 +5,12 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { BackLink } from "@/components/ui/back-link";
 
 export default function NewBuildingPage() {
+  async function createAction(formData: FormData) {
+    "use server";
+
+    await createBuilding(formData);
+  }
+
   return (
     <div className="space-y-6">
       <div className="space-y-3">
@@ -30,7 +36,7 @@ export default function NewBuildingPage() {
       </div>
 
       <BuildingForm
-        action={createBuilding}
+        action={createAction}
         submitText="Create Building"
       />
     </div>

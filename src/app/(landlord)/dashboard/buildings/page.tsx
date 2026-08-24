@@ -8,10 +8,26 @@ import {
 } from "@/components/ui/card";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { BackLink } from "@/components/ui/back-link";
+import { StatusFilter } from "@/components/ui/status-filter";
 import { BuildingList } from "@/components/building/building-list";
 
-export default async function BuildingsPage() {
-  const buildings = await getBuildings();
+type PageProps = {
+  searchParams: Promise<{
+    status?: string;
+  }>;
+};
+
+const FILTER_OPTIONS = [
+  { label: "Active", value: "ACTIVE" },
+  { label: "Inactive", value: "INACTIVE" },
+  { label: "All", value: "" },
+];
+
+export default async function BuildingsPage({ searchParams }: PageProps) {
+  const { status } = await searchParams;
+  const activeStatus = status ?? "ACTIVE";
+
+  const buildings = await getBuildings(activeStatus || undefined);
 
   return (
     <div className="space-y-6">
@@ -35,10 +51,18 @@ export default async function BuildingsPage() {
         </Link>
       </div>
 
+      <StatusFilter
+        basePath="/dashboard/buildings"
+        options={FILTER_OPTIONS}
+        active={activeStatus}
+      />
+
       {buildings.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            You haven't created any buildings yet.
+            {activeStatus
+              ? "No buildings match this filter."
+              : "You haven't created any buildings yet."}
           </CardContent>
         </Card>
       ) : (

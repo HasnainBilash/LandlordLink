@@ -3,7 +3,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function getBuildings() {
+export async function getBuildings(status?: string) {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -14,6 +14,11 @@ export async function getBuildings() {
     where: {
       ownerId: session.user.id,
       deletedAt: null,
+      ...(status
+        ? {
+            status: status as "ACTIVE" | "INACTIVE",
+          }
+        : {}),
     },
     orderBy: {
       createdAt: "desc",

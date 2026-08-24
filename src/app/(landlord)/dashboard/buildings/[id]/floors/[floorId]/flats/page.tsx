@@ -31,7 +31,10 @@ export default async function FlatsPage({ params }: PageProps) {
 
   const floorLabel = floor.name || `Floor ${floor.floorNumber}`;
 
-  const flats = await getFlats(floorId);
+  const flats = (await getFlats(floorId)).map((flat) => ({
+    ...flat,
+    monthlyRent: Number(flat.monthlyRent),
+  }));
 
   return (
     <div className="space-y-6">
@@ -73,7 +76,7 @@ export default async function FlatsPage({ params }: PageProps) {
       {flats.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            This floor doesn't have any flats yet.
+            This floor doesn&apos;t have any flats yet.
           </CardContent>
         </Card>
       ) : (

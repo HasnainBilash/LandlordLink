@@ -23,9 +23,12 @@ export function DeleteBuildingButton({
 
     if (!confirmed) return;
 
+    setIsPending(true);
+
     const result = await deleteBuilding(buildingId);
 
     if (!result.success) {
+      setIsPending(false);
       alert(result.message);
       return;
     }

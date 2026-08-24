@@ -148,14 +148,22 @@ Features
 
 Status
 
-🚧 Current Sprint
+✅ Completed
 
 Features
 
-- Request Submission
-- Approval Workflow
+- Building Access Codes (generated on Building creation, shown on Building
+  Details, retried on collision)
+- Tenant Building Search (name search, restricted to Active buildings with
+  at least one vacant Flat)
+- Request Submission (requires Tenant Profile + correct Access Code)
+- Approval Workflow (marks the Flat Occupied, auto-rejects other pending
+  requests for that Flat)
 - Rejection Workflow
-- Assignment to Flats
+- End Tenancy (marks the Flat Vacant again, request status `ENDED`)
+- Landlord Requests Inbox (global + per-Building, filterable by status)
+- Tenant "My Requests" view (filterable by status)
+- Sidebar pending-request badge
 
 ---
 
@@ -163,7 +171,7 @@ Features
 
 Status
 
-⬜ Planned
+🚧 Current Sprint
 
 Features
 
@@ -313,16 +321,17 @@ A module is considered complete only when all of the above are implemented and d
 
 Current Sprint
 
-🚧 Join Requests
+⬜ Lease Management
 
 Goal
 
-Let a Tenant request a specific Flat, and let the owning Landlord approve
-or reject that request — the workflow that eventually produces a Lease.
+Turn an `APPROVED` Join Request into a formal Lease (start/end date,
+deposit, monthly rent), and handle Move In / Move Out and renewal on top
+of the tenancy relationship Join Requests already established.
 
-Join Requests should follow the same architecture and conventions
-established by the Building, Floors, Flats, and Tenant Profile modules —
-including the Tenant-facing route group introduced this sprint.
+Lease Management should follow the same architecture and conventions
+established by the Building, Floors, Flats, Tenant Profile, and Join
+Request modules.
 
 ---
 

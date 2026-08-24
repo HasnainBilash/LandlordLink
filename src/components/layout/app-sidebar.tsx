@@ -1,9 +1,13 @@
 import Link from "next/link";
 
+import { getPendingJoinRequestsCount } from "@/actions/join-request/get-pending-join-requests-count";
+
 const disabledLinkClass =
   "flex items-center justify-between rounded-lg px-3 py-2 text-muted-foreground/50 cursor-not-allowed select-none";
 
-export function AppSidebar() {
+export async function AppSidebar() {
+  const pendingCount = await getPendingJoinRequestsCount();
+
   return (
     <aside className="w-64 border-r bg-background">
       <div className="border-b p-6">
@@ -26,6 +30,19 @@ export function AppSidebar() {
           className="rounded-lg px-3 py-2 hover:bg-muted"
         >
           Buildings
+        </Link>
+
+        <Link
+          href="/dashboard/requests"
+          className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-muted"
+        >
+          Requests
+
+          {pendingCount > 0 && (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-semibold text-destructive-foreground">
+              {pendingCount}
+            </span>
+          )}
         </Link>
 
         <span className={disabledLinkClass} aria-disabled="true">

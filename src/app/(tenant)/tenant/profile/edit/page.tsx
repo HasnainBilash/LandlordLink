@@ -9,7 +9,7 @@ export default async function EditTenantProfilePage() {
 
   return (
     <div className="space-y-6">
-      <BackLink href="/tenant" label="My Profile" />
+      <BackLink href="/tenant/profile" label="My Profile" />
 
       <div>
         <h1 className="text-3xl font-bold">Edit Profile</h1>

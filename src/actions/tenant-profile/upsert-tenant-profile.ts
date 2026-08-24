@@ -73,5 +73,5 @@ export async function upsertTenantProfile(
     throw error;
   }
 
-  redirect("/tenant");
+  redirect("/tenant/profile");
 }

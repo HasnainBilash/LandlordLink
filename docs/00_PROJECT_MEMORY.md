@@ -26,7 +26,7 @@ main
 
 ## Current Sprint
 
-Sprint 6 — Join Requests
+Sprint 7 — Lease Management
 
 ---
 
@@ -56,6 +56,10 @@ Sprint 6 — Join Requests
 
 ✅ Complete
 
+## Join Requests
+
+✅ Complete
+
 ## Architecture
 
 ✅ Architecture v2.0 (Frozen)
@@ -66,7 +70,7 @@ Sprint 6 — Join Requests
 
 ## Current Development
 
-🚧 Join Requests
+🚧 Lease Management
 
 ---
 
@@ -271,11 +275,30 @@ Architecture v2.0 is considered frozen unless intentionally revised.
   Login/Register), not the plain-redirect pattern Building/Floor/Flat use —
   a deliberate choice since duplicate National ID needs to surface inline
 
+### Join Requests
+
+- Building Access Codes: a random code generated on Building creation
+  (retried on unique-constraint collision), shown on the Building Details
+  page, required by a Tenant to submit a request
+- Tenant-facing flow: search Active buildings with vacant flats by name →
+  view vacant flats in a building → submit a request with the Access Code
+  and an optional message (blocked until the Tenant Profile is filled in)
+- Landlord-facing flow: global Requests inbox (`/dashboard/requests`) and
+  a per-Building inbox, both filterable by status via `StatusFilter`
+- Approve marks the Flat `OCCUPIED` and auto-rejects any other pending
+  requests for that same Flat, in one transaction
+- End Tenancy (`JoinRequestStatus.ENDED`) marks the Flat `VACANT` again —
+  distinct from `REJECTED`, since it closes out a tenancy that was actually
+  approved and lived, not a request that never went anywhere
+- Sidebar "Requests" link shows a live pending-count badge
+- Lives under `src/actions/join-request/`, `src/components/join-request/`,
+  since it spans Building, Flat, and TenantProfile rather than belonging to
+  a single entity
+
 ---
 
 # Planned Modules
 
-- Join Requests
 - Lease Management
 - Rent Management
 - Utility Bills
@@ -415,6 +438,14 @@ Protected (Landlord)
 /dashboard/buildings/[id]/floors/[floorId]/flats/[flatId]/edit
 ```
 
+```
+/dashboard/requests
+```
+
+```
+/dashboard/buildings/[id]/requests
+```
+
 Protected (Tenant)
 
 ```
@@ -422,7 +453,31 @@ Protected (Tenant)
 ```
 
 ```
-/tenant/edit
+/tenant/profile
+```
+
+```
+/tenant/profile/edit
+```
+
+```
+/tenant/buildings
+```
+
+```
+/tenant/buildings/[id]/flats
+```
+
+```
+/tenant/flats/[flatId]
+```
+
+```
+/tenant/flats/[flatId]/request
+```
+
+```
+/tenant/requests
 ```
 
 `proxy.ts` enforces this split — a Tenant hitting any `/dashboard/*` route
@@ -557,14 +612,15 @@ Correctness is preferred over speed.
 
 # Next Goal
 
-Implement Join Requests: a Tenant requests a specific Flat, and the owning
-Landlord approves or rejects it.
+Implement Lease Management: turn an `APPROVED` Join Request into a formal
+Lease (start/end date, deposit, monthly rent), with Move In / Move Out and
+renewal handling.
 
 Future modules should reuse the same architecture and development patterns
-introduced by the Building, Floors, Flats, and Tenant Profile modules —
-including baking in breadcrumb and back navigation from the start, and
-routing new Tenant-facing pages under the `(tenant)` route group rather
-than `(landlord)`.
+introduced by the Building, Floors, Flats, Tenant Profile, and Join
+Request modules — including baking in breadcrumb and back navigation from
+the start, and routing new Tenant-facing pages under the `(tenant)` route
+group rather than `(landlord)`.
 
 ---
 

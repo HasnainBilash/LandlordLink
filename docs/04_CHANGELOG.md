@@ -10,7 +10,6 @@ The format loosely follows Keep a Changelog while remaining focused on project d
 
 ## Planned
 
-- Join Requests
 - Lease Management
 - Rent Management
 - Utility Bills
@@ -18,6 +17,73 @@ The format loosely follows Keep a Changelog while remaining focused on project d
 - Notices
 - Reports
 - Analytics
+
+---
+
+# [v2.4.0] - Join Requests
+
+## Added
+
+### Building Access Codes
+
+- Random, unique `accessCode` generated on Building creation (retried on
+  collision), shown on the Building Details page
+- `prisma/backfill-access-codes.ts` — one-off script to backfill codes onto
+  Buildings created before this migration
+- A Tenant must supply the correct code to submit a Join Request
+
+---
+
+### Join Requests
+
+- Tenant search: find Active buildings with at least one vacant Flat by
+  name, browse a building's vacant Flats
+- Request submission: requires a completed Tenant Profile and the
+  Building's Access Code, with an optional message to the landlord
+- Duplicate pending requests for the same Flat are blocked
+- Landlord Requests Inbox — global (`/dashboard/requests`) and per-Building
+  (`/dashboard/buildings/[id]/requests`) — both filterable by status
+  (Pending / Approved / Rejected / Ended / All) via the new `StatusFilter`
+  component
+- Approve: marks the Flat `OCCUPIED`, auto-rejects any other pending
+  requests for that Flat, all in one transaction
+- Reject
+- End Tenancy: new `JoinRequestStatus.ENDED`, distinct from `REJECTED` —
+  marks the Flat `VACANT` again for a tenancy that was actually approved
+  and later ended
+- Tenant "My Requests" view, filterable by status
+- Sidebar "Requests" link shows a live pending-count badge
+
+---
+
+### Bug Fixes
+
+- Fixed a regression where the landlord Flats list page
+  (`/dashboard/buildings/[id]/floors/[floorId]/flats`) had been
+  overwritten with duplicate Flat Details content, making the list
+  unreachable
+- Fixed `monthlyRent` (Prisma `Decimal`) being passed directly into
+  components typed for `number | string` on two Join Request pages
+- Fixed `createBuilding`'s return value being incompatible with
+  `BuildingForm`'s `action` prop type
+- Fixed `loginUser`'s inferred state type allowing `undefined`, which broke
+  the login form's error rendering under strict type-checking
+- Removed unused, broken shadcn scaffolding (`ui/calendar.tsx`,
+  `ui/command.tsx`, `ui/sonner.tsx`) referencing dependencies that were
+  never installed
+- `DeleteBuildingButton` now actually enters its pending/disabled state
+  while the delete request is in flight
+
+---
+
+### Documentation
+
+Updated
+
+- Project Memory (Sprint 7, Join Requests marked complete, new routing)
+- Roadmap (Join Requests complete, Lease Management now current sprint)
+- Database (JoinRequest moved from schema-only to schema + application
+  complete, documented `accessCode` and `ENDED` status)
 
 ---
 

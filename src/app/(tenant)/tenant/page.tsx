@@ -1,71 +1,67 @@
 import Link from "next/link";
 
-import { getTenantProfile } from "@/actions/tenant-profile/get-tenant-profile";
+import { getMyCurrentFlats } from "@/actions/join-request/get-my-current-flats";
 
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
-export default async function TenantProfilePage() {
-  const profile = await getTenantProfile();
+export default async function TenantDashboardPage() {
+  const currentFlats = await getMyCurrentFlats();
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">My Profile</h1>
+      <div>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
 
-          <p className="text-muted-foreground">
-            Your tenant information on file.
-          </p>
-        </div>
-
-        <Link href="/tenant/edit">
-          <Button>
-            {profile ? "Edit Profile" : "Complete Profile"}
-          </Button>
-        </Link>
+        <p className="text-muted-foreground">
+          Welcome to the Building Management System.
+        </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Details</CardTitle>
+          <CardTitle>Your Current Flat</CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-4">
-          {!profile ? (
-            <p className="text-muted-foreground">
-              You haven't filled in your profile yet.
-            </p>
+        <CardContent>
+          {currentFlats.length === 0 ? (
+            <div className="space-y-3">
+              <p className="text-muted-foreground">
+                You don&apos;t have an approved flat yet.
+              </p>
+
+              <Link href="/tenant/buildings">
+                <Button size="sm">Find a Flat</Button>
+              </Link>
+            </div>
           ) : (
-            <>
-              <div>
-                <p className="text-sm text-muted-foreground">Occupation</p>
-                <p className="font-semibold">
-                  {profile.occupation || "—"}
-                </p>
-              </div>
+            <div className="space-y-4">
+              {currentFlats.map((request) => {
+                const floorLabel =
+                  request.flat.floor.name ||
+                  `Floor ${request.flat.floor.floorNumber}`;
 
-              <div>
-                <p className="text-sm text-muted-foreground">National ID</p>
-                <p className="font-semibold">
-                  {profile.nationalId || "—"}
-                </p>
-              </div>
+                return (
+                  <Link
+                    key={request.id}
+                    href={`/tenant/flats/${request.flatId}`}
+                    className="block rounded-lg border p-4 transition-shadow hover:shadow-md"
+                  >
+                    <p className="font-semibold">{request.building.name}</p>
 
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Emergency Contact
-                </p>
-                <p className="font-semibold">
-                  {profile.emergencyContact || "—"}
-                </p>
-              </div>
-            </>
+                    <p className="text-sm text-muted-foreground">
+                      {floorLabel} · Flat {request.flat.flatNumber} · $
+                      {Number(request.flat.monthlyRent).toFixed(2)}/mo
+                    </p>
+                  </Link>
+                );
+              })}
+            </div>
           )}
         </CardContent>
       </Card>

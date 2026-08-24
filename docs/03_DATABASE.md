@@ -96,7 +96,7 @@ Additional models
 
 TenantProfile           (schema + application complete)
 
-JoinRequest             (schema only — not yet built)
+JoinRequest             (schema + application complete)
 
 UtilityBill             (schema only — not yet built)
 
@@ -176,7 +176,13 @@ APPROVED
 
 REJECTED
 
+ENDED
+
 ```
+
+`ENDED` is distinct from `REJECTED` — it closes out a tenancy that was
+actually `APPROVED` and lived (via End Tenancy), not a request that was
+never accepted.
 
 ---
 
@@ -331,9 +337,15 @@ country
 
 status
 
+accessCode
+
 ownerId
 
 ```
+
+`accessCode` is a unique, randomly generated code (`src/lib/generate-access-code.ts`)
+created when the Building is created and retried on collision. A Tenant
+must supply it to submit a Join Request for one of the Building's Flats.
 
 ---
 
@@ -463,21 +475,44 @@ Tenant
 
 ↓
 
-Join Request
+Join Request (requires the Building's Access Code)
 
 ↓
 
-Landlord Approval
+Landlord Approval → Flat marked OCCUPIED, other pending requests
+                     for that Flat auto-REJECTED
+        or
+Landlord Rejection → Flat stays VACANT
+
+↓ (later)
+
+Landlord Ends Tenancy → status ENDED, Flat marked VACANT again
 
 ↓
 
-Lease Created
+Lease Created (not yet built — see Lease Management)
 
 ```
 
 A tenant never becomes an active tenant immediately.
 
 Approval is required.
+
+Important Fields
+
+```
+
+tenantId
+
+buildingId
+
+flatId
+
+message
+
+status
+
+```
 
 ---
 

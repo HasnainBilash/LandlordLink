@@ -26,6 +26,18 @@ export async function getFlat(id: string) {
           building: true,
         },
       },
+      joinRequests: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          tenant: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      },
     },
   });
 }

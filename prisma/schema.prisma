@@ -100,6 +100,8 @@ model Building {
 
   status BuildingStatus @default(ACTIVE)
 
+  accessCode String? @unique
+
   ownerId String
 
   createdAt DateTime  @default(now())
@@ -188,6 +190,7 @@ enum JoinRequestStatus {
   PENDING
   APPROVED
   REJECTED
+  ENDED
 }
 
 // ======================================================
