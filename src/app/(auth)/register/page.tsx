@@ -6,7 +6,7 @@ export default function RegisterPage() {
   return (
     <AuthLayout
       title="Create Account"
-      description="Join the Building Management System"
+      description="Join LandLordLink"
     >
       <AuthCard>
         <RegisterForm />

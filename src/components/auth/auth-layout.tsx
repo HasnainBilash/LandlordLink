@@ -17,7 +17,7 @@ export function AuthLayout({
 
       <section className="hidden lg:flex flex-col justify-center bg-primary text-primary-foreground p-16">
         <h1 className="text-5xl font-bold mb-6">
-          Building Management System
+          LandLordLink
         </h1>
 
         <p className="text-lg opacity-90 max-w-md">

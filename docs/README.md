@@ -1,6 +1,6 @@
 # Project Documentation
 
-Welcome to the internal documentation for the **Building Management System**.
+Welcome to the internal documentation for **LandLordLink**.
 
 These documents are considered part of the project itself and should always remain synchronized with the source code.
 

@@ -1,6 +1,6 @@
 # Project Architecture
 
-> This document defines the architecture of the Building Management System.
+> This document defines the architecture of LandLordLink.
 >
 > It is the technical reference for how the application is structured and how new features should be implemented.
 >
@@ -1632,7 +1632,7 @@ Any architectural changes should be discussed before implementation and document
 
 # Summary
 
-The Building Management System follows a modular, feature-oriented architecture built on:
+LandLordLink follows a modular, feature-oriented architecture built on:
 
 - Next.js App Router
 - Server Components by default

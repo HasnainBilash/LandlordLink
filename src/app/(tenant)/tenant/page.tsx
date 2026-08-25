@@ -19,7 +19,7 @@ export default async function TenantDashboardPage() {
         <h1 className="text-3xl font-bold">Dashboard</h1>
 
         <p className="text-muted-foreground">
-          Welcome to the Building Management System.
+          Welcome to LandLordLink.
         </p>
       </div>
 

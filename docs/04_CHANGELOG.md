@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the Building Management System are documented here.
+All notable changes to LandLordLink are documented here.
 
 The format loosely follows Keep a Changelog while remaining focused on project development.
 
@@ -12,6 +12,34 @@ The format loosely follows Keep a Changelog while remaining focused on project d
 
 Nothing from the original roadmap — Phases 1–7 are complete. Future
 work comes from Future Enhancements in `01_ROADMAP.md`, unsequenced.
+
+---
+
+# [v2.13.0] - Renamed to LandLordLink
+
+## Changed
+
+- Project renamed from "Building Management System" / "BMS" to
+  **LandLordLink** everywhere: `package.json`, page metadata (which
+  had never been updated from the `create-next-app` default, "Create
+  Next App"), the sidebar/header/auth-page branding, and every doc
+- README fully refreshed — it had been stale since Sprint 2 (listed
+  Floor/Flat Management, Tenant Profiles, Join Requests, Lease
+  Management, Rent Management, Utility Bills, Payment History, and
+  Activity Logs all as "Planned," when every one of them has shipped)
+- `01_ROADMAP.md`'s Future Enhancements section now carries prioritized
+  recommendations instead of a bare list — image uploads and search/
+  filtering flagged as lowest-effort/highest-value, email
+  notifications as the biggest real functional gap, RBAC/multi-tenant
+  flagged as needing a design conversation rather than a checkbox
+
+## Documentation
+
+Updated
+
+- Project Memory, Roadmap — recorded that this is an intentional
+  stopping point (all 7 phases + the UX pass complete, nothing next
+  committed)
 
 ---
 

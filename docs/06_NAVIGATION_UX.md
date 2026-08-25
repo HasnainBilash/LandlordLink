@@ -1,6 +1,6 @@
 # Navigation & UX Design
 
-> This document defines how a user moves through the Building Management System —
+> This document defines how a user moves through LandLordLink —
 > what every page does, how the user arrives there, and how they leave it.
 >
 > It exists because navigation was added ad-hoc during the Floors module build

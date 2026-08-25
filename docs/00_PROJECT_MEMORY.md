@@ -1,6 +1,6 @@
 # Project Memory
 
-> This document is the permanent memory of the Building Management System.
+> This document is the permanent memory of LandLordLink.
 >
 > Read this document before starting development or beginning a new ChatGPT conversation.
 
@@ -10,7 +10,7 @@
 
 ## Project Name
 
-Building Management System
+LandLordLink
 
 ## Status
 
@@ -112,7 +112,7 @@ complete.
 
 # Project Vision
 
-Build a modern, scalable, production-ready Building Management System that allows landlords to manage residential properties from a single dashboard while providing tenants with a structured and secure workflow.
+Build LandLordLink, a modern, scalable, production-ready building management system that allows landlords to manage residential properties from a single dashboard while providing tenants with a structured and secure workflow.
 
 The project should prioritize:
 
@@ -922,12 +922,20 @@ Correctness is preferred over speed.
 
 # Next Goal
 
-None committed. Phases 1–7 — the full original roadmap — are complete:
-Authentication, Buildings/Floors/Flats, Tenant Profiles, Join Requests,
-Lease Management, Rent Management, Utility Bills, Payment History,
-Notices, Activity Logs, Reports, and Analytics. The next piece of work
-should come from Future Enhancements in `01_ROADMAP.md`, chosen
-deliberately rather than assumed — ask before picking one.
+None committed — this is intentionally the end of active development
+for now. Phases 1–7 (the full original roadmap) and the UX
+Simplification Pass are complete: Authentication, Buildings/Floors/
+Flats, Tenant Profiles, Join Requests, Lease Management, Rent
+Management, Utility Bills, Payment History, Notices, Activity Logs,
+Reports, and Analytics.
+
+`01_ROADMAP.md`'s Future Enhancements section now carries prioritized
+recommendations (not commitments) for whenever work picks back up —
+image uploads and search/filtering flagged as the lowest-effort/
+highest-value starting points, email notifications as the biggest
+real functional gap, RBAC/multi-tenant flagged as structural changes
+needing a design conversation first, not a checkbox. Ask before
+picking one rather than assuming.
 
 Future modules should reuse the same architecture and development patterns
 introduced by the Building, Floors, Flats, Tenant Profile, Join Request,
@@ -941,6 +949,6 @@ the `(tenant)` route group rather than `(landlord)`.
 
 # Long-Term Goal
 
-Develop a complete production-ready Building Management System while maintaining a clean, scalable, and consistent architecture across every module.
+Develop LandLordLink into a complete production-ready building management system while maintaining a clean, scalable, and consistent architecture across every module.
 
 This document should always represent the current state of the repository.

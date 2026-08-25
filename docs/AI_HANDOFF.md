@@ -262,6 +262,6 @@ If assumptions become necessary, state them explicitly.
 
 # Final Principle
 
-This project is intended to become a production-quality Building Management System.
+This project is intended to become LandLordLink, a production-quality building management system.
 
 Every contribution should move the codebase toward that goal while preserving consistency with the existing architecture.

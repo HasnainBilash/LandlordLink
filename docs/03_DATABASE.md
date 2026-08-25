@@ -1,6 +1,6 @@
 # Database Documentation
 
-> Database design for the Building Management System.
+> Database design for LandLordLink.
 
 ---
 

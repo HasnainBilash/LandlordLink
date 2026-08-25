@@ -8,8 +8,8 @@ export async function AppSidebar() {
   return (
     <aside className="w-64 border-r bg-background">
       <div className="border-b p-6">
-        <h2 className="text-xl font-bold">
-          BMS
+        <h2 className="text-lg font-bold">
+          LandLordLink
         </h2>
       </div>
 

@@ -1,6 +1,6 @@
 # Project Conventions
 
-> This document defines the development conventions used throughout the Building Management System.
+> This document defines the development conventions used throughout LandLordLink.
 >
 > These conventions exist to keep the codebase predictable, maintainable, and consistent as the project grows.
 

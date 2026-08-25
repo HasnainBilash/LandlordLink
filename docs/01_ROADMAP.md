@@ -1,6 +1,6 @@
 # Project Roadmap
 
-> This roadmap tracks the long-term development of the Building Management System.
+> This roadmap tracks the long-term development of LandLordLink.
 >
 > Items move from **Planned → In Progress → Completed**.
 >
@@ -10,7 +10,7 @@
 
 # Project Goal
 
-Build a production-ready Building Management System using modern architecture, scalable design, and consistent development practices.
+Build LandLordLink, a production-ready building management system, using modern architecture, scalable design, and consistent development practices.
 
 The project is developed module by module, with each module completed before moving to the next.
 
@@ -510,25 +510,74 @@ those are sequenced or committed to yet, unlike Phases 1–7.
 
 # Future Enhancements
 
-Potential improvements after the core system is complete:
+Potential improvements after the core system is complete. Unlike Phases
+1–7, nothing here is sequenced or committed to — this is a menu, not a
+plan. The notes below are recommendations for when picking from it,
+based on what actually seems to matter given how the app turned out;
+they're not a decision to build any of it.
 
-- Search
-- Filtering
-- Pagination
-- File Uploads
-- Image Galleries
-- Email Notifications
-- SMS Notifications
-- Push Notifications
-- Calendar Integration
-- Multi-language Support
-- Dark Mode Improvements
-- Data Export
-- Data Import
-- Role-Based Access Control
-- Multi-Tenant Organizations
+## Worth doing first, if picking anything
 
-These features should only be implemented after the core management workflow is complete.
+- **Image uploads for buildings/flats.** `Building.imageUrl` has
+  existed in the schema since the first migration and is still `null`
+  for every building — nothing in the UI ever sets it. This is the
+  single lowest-effort item on this list: the data model is already
+  there, it just needs an upload flow (Landlord Edit Building/Flat
+  forms) and a place to store the file (S3/Cloudinary/Vercel Blob — no
+  file storage exists in this project yet). A visual building/flat
+  card would also make the tenant-facing "Find a Flat" list feel much
+  less like a spreadsheet.
+- **Search + filtering on the lists that will actually grow.**
+  Buildings, the landlord Requests inbox, and Activity are the pages
+  most likely to get long as a portfolio grows past a handful of
+  buildings — right now they're unpaginated, unfiltered `findMany`
+  calls capped at 200 rows (Activity) or nothing at all (Buildings).
+  Filtering Buildings by status, and Activity/Requests by
+  building/date, would matter well before Analytics-style polish
+  would.
+- **Pagination**, once Search/Filtering is in — a growing Activity
+  Log or Requests inbox is the first place "just show everything"
+  stops working.
+
+## Worth doing once there's real usage
+
+- **Email notifications.** The single biggest functional gap for a
+  real landlord: right now, the *only* way to learn about a new join
+  request or an upcoming notice is to open the app. Even a bare
+  "you have a new request" email would close the gap between "the
+  data is right" (already true) and "the landlord actually sees it in
+  time" (not true yet). SMS/push are the same problem at higher cost —
+  do email first and see if it's enough.
+- **Data export.** Reports already aggregates exactly the numbers an
+  accountant or a landlord's own records would want (revenue,
+  outstanding, occupancy) — a CSV/PDF export button on that page is a
+  small addition on top of data that already exists, not a new
+  feature to build from scratch.
+
+## Bigger, structural — only if the product's shape actually changes
+
+- **Role-Based Access Control** — only matters once a building has
+  more than one person managing it (a property manager, a co-owner).
+  For the current one-landlord-per-building model it's not solving a
+  real problem yet.
+- **Multi-Tenant Organizations** — a genuinely different product
+  shape (companies with sub-users managing shared portfolios), not an
+  incremental feature. Worth a real design conversation before any
+  code, not a checkbox off this list.
+- **Calendar integration, multi-language support** — plausible, but
+  nothing currently in the app points at either being the actual
+  bottleneck; low priority absent a specific ask.
+
+## Cosmetic / low-stakes
+
+- **Dark mode.** The CSS variables for it already exist
+  (`.dark` selectors throughout `globals.css`), but there is no theme
+  toggle or `ThemeProvider` wired up anywhere, so dark mode is
+  currently unreachable in the running app regardless of OS setting.
+  Finishing this is mostly wiring, not design work.
+- **Data import** — lower priority than export; only useful once
+  someone is migrating *into* this system from somewhere else, which
+  isn't a known scenario yet.
 
 ---
 
