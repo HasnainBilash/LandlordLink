@@ -1,6 +1,6 @@
 # Project Conventions
 
-> This document defines the development conventions used throughout LandLordLink.
+> This document defines the development conventions used throughout LandlordLink.
 >
 > These conventions exist to keep the codebase predictable, maintainable, and consistent as the project grows.
 

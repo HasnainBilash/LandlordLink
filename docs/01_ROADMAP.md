@@ -1,6 +1,6 @@
 # Project Roadmap
 
-> This roadmap tracks the long-term development of LandLordLink.
+> This roadmap tracks the long-term development of LandlordLink.
 >
 > Items move from **Planned → In Progress → Completed**.
 >
@@ -10,7 +10,7 @@
 
 # Project Goal
 
-Build LandLordLink, a production-ready building management system, using modern architecture, scalable design, and consistent development practices.
+Build LandlordLink, a production-ready building management system, using modern architecture, scalable design, and consistent development practices.
 
 The project is developed module by module, with each module completed before moving to the next.
 

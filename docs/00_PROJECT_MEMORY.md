@@ -1,6 +1,6 @@
 # Project Memory
 
-> This document is the permanent memory of LandLordLink.
+> This document is the permanent memory of LandlordLink.
 >
 > Read this document before starting development or beginning a new ChatGPT conversation.
 
@@ -10,7 +10,7 @@
 
 ## Project Name
 
-LandLordLink
+LandlordLink
 
 ## Status
 
@@ -112,7 +112,7 @@ complete.
 
 # Project Vision
 
-Build LandLordLink, a modern, scalable, production-ready building management system that allows landlords to manage residential properties from a single dashboard while providing tenants with a structured and secure workflow.
+Build LandlordLink, a modern, scalable, production-ready building management system that allows landlords to manage residential properties from a single dashboard while providing tenants with a structured and secure workflow.
 
 The project should prioritize:
 
@@ -949,6 +949,6 @@ the `(tenant)` route group rather than `(landlord)`.
 
 # Long-Term Goal
 
-Develop LandLordLink into a complete production-ready building management system while maintaining a clean, scalable, and consistent architecture across every module.
+Develop LandlordLink into a complete production-ready building management system while maintaining a clean, scalable, and consistent architecture across every module.
 
 This document should always represent the current state of the repository.

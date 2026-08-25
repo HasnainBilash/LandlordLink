@@ -1,8 +1,8 @@
-# LandLordLink
+# LandlordLink
 
 A modern, production-ready building management system built with Next.js, Prisma, PostgreSQL and Auth.js.
 
-LandLordLink lets landlords manage buildings, floors, flats, tenants, leases, rent collection, utility bills, notices, activity logs, and reports through a secure web application — and gives tenants a structured, secure way to find a flat, request to join, and track their own lease and payments.
+LandlordLink lets landlords manage buildings, floors, flats, tenants, leases, rent collection, utility bills, notices, activity logs, and reports through a secure web application — and gives tenants a structured, secure way to find a flat, request to join, and track their own lease and payments.
 
 ---
 

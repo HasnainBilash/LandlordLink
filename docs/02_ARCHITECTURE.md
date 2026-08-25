@@ -1,6 +1,6 @@
 # Project Architecture
 
-> This document defines the architecture of LandLordLink.
+> This document defines the architecture of LandlordLink.
 >
 > It is the technical reference for how the application is structured and how new features should be implemented.
 >
@@ -1632,7 +1632,7 @@ Any architectural changes should be discussed before implementation and document
 
 # Summary
 
-LandLordLink follows a modular, feature-oriented architecture built on:
+LandlordLink follows a modular, feature-oriented architecture built on:
 
 - Next.js App Router
 - Server Components by default

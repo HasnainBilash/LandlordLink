@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to LandLordLink are documented here.
+All notable changes to LandlordLink are documented here.
 
 The format loosely follows Keep a Changelog while remaining focused on project development.
 
@@ -15,12 +15,12 @@ work comes from Future Enhancements in `01_ROADMAP.md`, unsequenced.
 
 ---
 
-# [v2.13.0] - Renamed to LandLordLink
+# [v2.13.0] - Renamed to LandlordLink
 
 ## Changed
 
 - Project renamed from "Building Management System" / "BMS" to
-  **LandLordLink** everywhere: `package.json`, page metadata (which
+  **LandlordLink** everywhere: `package.json`, page metadata (which
   had never been updated from the `create-next-app` default, "Create
   Next App"), the sidebar/header/auth-page branding, and every doc
 - README fully refreshed — it had been stale since Sprint 2 (listed

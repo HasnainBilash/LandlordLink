@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LandLordLink",
+  title: "LandlordLink",
   description: "Manage buildings, tenants, leases, and rent payments from one modern dashboard.",
 };
 

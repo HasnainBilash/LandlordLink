@@ -1,6 +1,6 @@
 # Project Documentation
 
-Welcome to the internal documentation for **LandLordLink**.
+Welcome to the internal documentation for **LandlordLink**.
 
 These documents are considered part of the project itself and should always remain synchronized with the source code.
 

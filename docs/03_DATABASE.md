@@ -1,6 +1,6 @@
 # Database Documentation
 
-> Database design for LandLordLink.
+> Database design for LandlordLink.
 
 ---
 

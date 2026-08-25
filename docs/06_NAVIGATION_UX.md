@@ -1,6 +1,6 @@
 # Navigation & UX Design
 
-> This document defines how a user moves through LandLordLink —
+> This document defines how a user moves through LandlordLink —
 > what every page does, how the user arrives there, and how they leave it.
 >
 > It exists because navigation was added ad-hoc during the Floors module build

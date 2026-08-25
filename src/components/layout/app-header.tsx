@@ -8,7 +8,7 @@ export async function AppHeader() {
   return (
     <header className="flex h-16 items-center justify-between border-b bg-background px-8">
       <h1 className="font-semibold">
-        LandLordLink
+        LandlordLink
       </h1>
 
       <UserNav
