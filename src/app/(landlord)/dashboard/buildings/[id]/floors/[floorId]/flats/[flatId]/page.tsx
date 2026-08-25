@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/card";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { BackLink } from "@/components/ui/back-link";
-import { ApproveRejectButtons } from "@/components/join-request/approve-reject-buttons";
 import { EndLeaseButton } from "@/components/join-request/end-lease-button";
+import { RequestHistoryList } from "@/components/join-request/request-history-list";
 import { MONTH_NAMES } from "@/lib/rent";
 import { UTILITY_TYPE_LABELS } from "@/lib/utility-bill";
 import { computePaymentStatus } from "@/lib/payment-status";
@@ -36,13 +36,6 @@ const flatStatusVariant = {
   VACANT: "outline",
   OCCUPIED: "default",
   MAINTENANCE: "secondary",
-} as const;
-
-const requestStatusVariant = {
-  PENDING: "outline",
-  APPROVED: "default",
-  REJECTED: "destructive",
-  ENDED: "secondary",
 } as const;
 
 export default async function FlatDetailsPage({ params }: PageProps) {
@@ -297,49 +290,10 @@ export default async function FlatDetailsPage({ params }: PageProps) {
               No one has requested this flat yet.
             </p>
           ) : (
-            <div className="space-y-4">
-              {flat.joinRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
-                >
-                  <div>
-                    <p className="font-semibold">
-                      {request.tenant.user.name}
-                    </p>
-
-                    <p className="text-sm text-muted-foreground">
-                      {request.tenant.user.email}
-                    </p>
-
-                    {request.message && (
-                      <p className="mt-1 text-sm italic text-muted-foreground">
-                        &quot;{request.message}&quot;
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="text-right">
-                    <Badge variant={requestStatusVariant[request.status]}>
-                      {request.status}
-                    </Badge>
-
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {new Date(request.createdAt).toLocaleDateString()}
-                    </p>
-
-                    {request.status === "PENDING" && (
-                      <div className="mt-2">
-                        <ApproveRejectButtons
-                          requestId={request.id}
-                          defaultMonthlyRent={Number(flat.monthlyRent)}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <RequestHistoryList
+              requests={flat.joinRequests}
+              defaultMonthlyRent={Number(flat.monthlyRent)}
+            />
           )}
         </CardContent>
       </Card>

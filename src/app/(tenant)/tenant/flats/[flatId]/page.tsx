@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { BackLink } from "@/components/ui/back-link";
 import { BillingTable, type BillingRow } from "@/components/billing/billing-table";
+import { TenantRequestHistoryList } from "@/components/join-request/tenant-request-history-list";
 import { MONTH_NAMES } from "@/lib/rent";
 import { UTILITY_TYPE_LABELS } from "@/lib/utility-bill";
 import { computePaymentStatus } from "@/lib/payment-status";
@@ -25,13 +26,6 @@ const flatStatusVariant = {
   VACANT: "outline",
   OCCUPIED: "default",
   MAINTENANCE: "secondary",
-} as const;
-
-const requestStatusVariant = {
-  PENDING: "outline",
-  APPROVED: "default",
-  REJECTED: "destructive",
-  ENDED: "secondary",
 } as const;
 
 export default async function TenantFlatDetailsPage({ params }: PageProps) {
@@ -203,32 +197,7 @@ export default async function TenantFlatDetailsPage({ params }: PageProps) {
         </CardHeader>
 
         <CardContent>
-          <div className="space-y-4">
-            {myRequests.map((request) => (
-              <div
-                key={request.id}
-                className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
-              >
-                <div>
-                  {request.message && (
-                    <p className="text-sm italic text-muted-foreground">
-                      &quot;{request.message}&quot;
-                    </p>
-                  )}
-                </div>
-
-                <div className="text-right">
-                  <Badge variant={requestStatusVariant[request.status]}>
-                    {request.status}
-                  </Badge>
-
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {new Date(request.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <TenantRequestHistoryList requests={myRequests} />
         </CardContent>
       </Card>
     </div>

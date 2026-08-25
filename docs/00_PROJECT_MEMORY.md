@@ -412,6 +412,14 @@ Architecture v2.0 is considered frozen unless intentionally revised.
 - Not yet built: a receipts view, or a cross-Lease payment timeline —
   payments are currently only visible per Rent/Utility Bill row on Flat
   Details
+- `BillingTable` shows only the 3 most recent rows by default, with a
+  "Show N more" / "Show less" toggle (local `useState`, made it a
+  Client Component) — a per-flat history list otherwise grows
+  unbounded over a lease's lifetime. The same pattern was applied to
+  Flat Details' Request History via two new components,
+  `RequestHistoryList` (landlord, keeps `ApproveRejectButtons`) and
+  `TenantRequestHistoryList` (tenant, read-only) — both under
+  `src/components/join-request/`
 
 ### Notices
 
@@ -567,6 +575,21 @@ Two follow-ups from user feedback on the first version of this pass:
   so the placeholders were stale, implying unbuilt features that
   actually exist elsewhere. No dedicated Tenants/Payments list page
   exists; building one would be new scope, not a fix
+
+### Loading Screen
+
+- Next.js `loading.tsx` convention, not a custom transition-tracking
+  solution — a route-segment Suspense boundary already covers exactly
+  what was needed. Three files: `src/app/loading.tsx` (root, only
+  meaningfully fires on a true cold load before any layout mounts),
+  `src/app/(landlord)/dashboard/loading.tsx` (covers every landlord
+  route, since they're all nested under one `dashboard` segment —
+  sidebar/header stay mounted), `src/app/(tenant)/tenant/loading.tsx`
+  (same for the tenant side)
+- All three render the shared `src/components/ui/loading-screen.tsx` —
+  a frosted-glass overlay with a 🐌 crawling animation. Pure CSS
+  keyframes in an inline `<style>` tag, so it stays a Server Component
+  and renders instantly without waiting on JS hydration
 
 ### Demo Data
 

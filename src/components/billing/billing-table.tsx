@@ -1,4 +1,9 @@
+"use client";
+
+import { useState } from "react";
+
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { RecordPaymentButton } from "./record-payment-button";
 
 const statusVariant = {
@@ -7,6 +12,8 @@ const statusVariant = {
   PAID: "default",
   OVERDUE: "destructive",
 } as const;
+
+const COLLAPSED_COUNT = 3;
 
 export type BillingRow = {
   id: string;
@@ -29,13 +36,18 @@ export function BillingTable({
   canManage = false,
   emptyMessage = "No billing periods yet.",
 }: BillingTableProps) {
+  const [expanded, setExpanded] = useState(false);
+
   if (rows.length === 0) {
     return <p className="text-muted-foreground">{emptyMessage}</p>;
   }
 
+  const visibleRows = expanded ? rows : rows.slice(0, COLLAPSED_COUNT);
+  const hiddenCount = rows.length - visibleRows.length;
+
   return (
     <div className="space-y-3">
-      {rows.map((row) => {
+      {visibleRows.map((row) => {
         const remaining = row.amount - row.paidTotal;
 
         return (
@@ -62,6 +74,28 @@ export function BillingTable({
           </div>
         );
       })}
+
+      {hiddenCount > 0 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full"
+          onClick={() => setExpanded(true)}
+        >
+          Show {hiddenCount} more
+        </Button>
+      )}
+
+      {expanded && rows.length > COLLAPSED_COUNT && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full"
+          onClick={() => setExpanded(false)}
+        >
+          Show less
+        </Button>
+      )}
     </div>
   );
 }

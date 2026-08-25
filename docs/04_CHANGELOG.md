@@ -15,6 +15,50 @@ work comes from Future Enhancements in `01_ROADMAP.md`, unsequenced.
 
 ---
 
+# [v2.14.0] - Loading Screen + Expandable History Lists
+
+Prompted by feedback that the site feels slow with no feedback while a
+page loads, and that per-flat history lists (Rent, Utility Bills,
+Request History) will keep growing unbounded over a lease's lifetime.
+
+## Added
+
+- `src/components/ui/loading-screen.tsx` — a frosted-glass overlay
+  (translucent background + `backdrop-blur`) with a 🐌 crawling along a
+  dashed track (fades in/out at each end, wobbles for a "walking"
+  feel) and a pulsing "Loading…" caption. Pure CSS keyframe animation
+  in an inline `<style>` tag, so it's a Server Component — renders
+  instantly without waiting on JS hydration
+- Wired in via Next.js's `loading.tsx` convention at three levels:
+  `src/app/loading.tsx` (root, only meaningfully fires on a true cold
+  load), `src/app/(landlord)/dashboard/loading.tsx` (covers every
+  landlord route, since they're all nested under one `dashboard`
+  segment — sidebar/header stay mounted), and
+  `src/app/(tenant)/tenant/loading.tsx` (same for the tenant side)
+- Click-to-expand on every per-flat history list — shows the 3 most
+  recent entries with a "Show N more" / "Show less" toggle:
+  - `BillingTable` (`src/components/billing/billing-table.tsx`) —
+    covers Rent and Utility Bills on both the landlord and tenant Flat
+    Details pages automatically, since it's shared. Became a Client
+    Component (local `useState`) to support this
+  - New `RequestHistoryList`
+    (`src/components/join-request/request-history-list.tsx`) — landlord
+    Flat Details' Request History, keeps `ApproveRejectButtons` for
+    pending requests
+  - New `TenantRequestHistoryList`
+    (`src/components/join-request/tenant-request-history-list.tsx`) —
+    simpler read-only version for the tenant's own Request History
+  - No new queries needed — every list was already ordered
+    most-recent-first, so expand/collapse is a plain array slice
+
+## Documentation
+
+Updated
+
+- Project Memory — noted under Flats/Billing UI
+
+---
+
 # [v2.13.0] - Renamed to LandlordLink
 
 ## Changed
