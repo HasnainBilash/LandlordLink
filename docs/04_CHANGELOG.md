@@ -10,7 +10,40 @@ The format loosely follows Keep a Changelog while remaining focused on project d
 
 ## Planned
 
-- Analytics
+Nothing from the original roadmap — Phases 1–7 are complete. Future
+work comes from Future Enhancements in `01_ROADMAP.md`, unsequenced.
+
+---
+
+# [v2.11.0] - Analytics
+
+## Added
+
+- Hand-built inline SVG/HTML charts, no charting library added —
+  `src/components/analytics/` (`OccupancyBar`, `RevenueTrendChart`,
+  `BuildingPerformanceChart`)
+- New categorical color constants (`src/lib/chart-colors.ts`) using
+  the first three slots of a CVD-validated reference palette — the
+  project's own `--chart-1..5` CSS tokens are still unthemed grayscale
+  placeholders, not real hues
+- `/dashboard/analytics` (linked from the sidebar): Occupancy
+  (Occupied/Vacant/Maintenance stacked bar), Revenue Trend (6-month
+  line + area), Building Performance (Revenue and Occupancy Rate
+  ranked bar lists)
+- Compact Occupancy + Revenue Trend charts added to the main
+  `/dashboard` landing page
+- Zero new backend work — every chart reads `getPortfolioReport`, the
+  same action Reports already built; Analytics visualizes, Reports
+  tabulates, and every charted number also exists as a plain table row
+  on Reports
+
+## Documentation
+
+Updated
+
+- Project Memory, Roadmap — Analytics marked complete. Phases 1–7 (the
+  full original roadmap) are now done; no phase is currently in
+  progress. Future work comes from Future Enhancements, unsequenced
 
 ---
 

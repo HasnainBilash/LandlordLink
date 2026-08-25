@@ -393,14 +393,32 @@ Building Statistics table on the one portfolio page covers that need.
 
 Status
 
-⬜ Planned
+✅ Completed
 
 Features
 
-- Dashboard Charts
-- Occupancy Analytics
-- Revenue Trends
-- Building Performance
+- Dashboard Charts — a compact Occupancy bar + Revenue Trend chart on
+  the main `/dashboard` landing page, so the numbers are visible on
+  login without a separate click
+- Occupancy Analytics — a 3-segment stacked bar (Occupied / Vacant /
+  Maintenance), portfolio-wide
+- Revenue Trends — a 6-month line chart (same monthly data Reports'
+  Due-vs-Collected table already shows, plotted as a trend instead)
+- Building Performance — two ranked horizontal-bar charts (Revenue by
+  Building, Occupancy Rate by Building)
+
+No new backend work — every chart on `/dashboard/analytics` (and the
+compact versions on `/dashboard`) reads `getPortfolioReport`, the same
+action Reports already built. Analytics visualizes; Reports tabulates.
+Every number shown in a chart also exists as a plain table row on
+Reports — charts are a second view of the same data, not a new source
+of it.
+
+Charts are hand-built inline SVG/HTML (no charting library added) —
+categorical colors use the first three slots of a CVD-validated
+reference palette (`src/lib/chart-colors.ts`), since the project's own
+`--chart-1..5` CSS tokens are still unthemed grayscale placeholders,
+not real hues.
 
 ---
 
@@ -427,19 +445,13 @@ A module is considered complete only when all of the above are implemented and d
 
 Current Sprint
 
-🚧 Phase 7 — Analytics
+None — Phases 1 through 7 are all complete. The core management
+workflow (Buildings → Floors → Flats → Tenants → Join Requests →
+Leases → Rent/Utility Billing → Payment History → Notices → Activity
+Logs → Reports → Analytics) is done end to end.
 
-Goal
-
-Phase 6 (Reports) is now complete. Start Phase 7: Dashboard Charts,
-Occupancy Analytics, Revenue Trends, Building Performance — visualizing
-the same data Reports already aggregates
-(`getPortfolioReport`), rather than collecting anything new.
-
-Analytics should follow the same architecture and conventions
-established by the Building, Floors, Flats, Tenant Profile, Join
-Request, Lease, Rent Management, Utility Bills, Payment History,
-Notices, Activity Logs, and Reports modules.
+Next up is whatever's picked from Future Enhancements below — none of
+those are sequenced or committed to yet, unlike Phases 1–7.
 
 ---
 

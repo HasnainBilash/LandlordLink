@@ -59,6 +59,13 @@ export async function AppSidebar() {
           Reports
         </Link>
 
+        <Link
+          href="/dashboard/analytics"
+          className="rounded-lg px-3 py-2 hover:bg-muted"
+        >
+          Analytics
+        </Link>
+
         <span className={disabledLinkClass} aria-disabled="true">
           Tenants
           <span className="text-xs">Soon</span>

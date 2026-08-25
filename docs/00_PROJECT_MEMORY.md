@@ -26,7 +26,8 @@ main
 
 ## Current Sprint
 
-Sprint 12 — Analytics (Phase 7)
+None — Phases 1–7 (the full original roadmap) are complete. Next work
+comes from Future Enhancements, unsequenced (see Roadmap).
 
 ---
 
@@ -101,7 +102,15 @@ action — see Roadmap)
 ✅ Complete (one portfolio-wide page, not a report per category — no
 new models, only aggregation)
 
+## Analytics (Phase 7)
+
+✅ Complete (hand-built SVG/HTML charts, no charting library added;
+visualizes the same `getPortfolioReport` data Reports tabulates)
+
 ## Current Development
+
+None — see Current Sprint above. All 7 original roadmap phases are
+complete.
 
 🚧 Analytics (Phase 7)
 
@@ -490,11 +499,39 @@ Architecture v2.0 is considered frozen unless intentionally revised.
   payment already made — now subtracts `payments` before summing,
   everywhere this number is shown
 
+### Analytics (Phase 7)
+
+- No charting library added — every chart is hand-built inline SVG/
+  HTML (`src/components/analytics/`). Categorical colors come from
+  `src/lib/chart-colors.ts`, the first three slots of a CVD-validated
+  reference palette — the project's own `--chart-1..5` CSS tokens are
+  still unthemed grayscale placeholders (identical gray in light and
+  dark mode), not real hues, so they weren't usable as-is
+- Zero new backend work — `/dashboard/analytics` and the compact
+  charts on the main `/dashboard` page both read `getPortfolioReport`,
+  the exact same action Reports built. Analytics visualizes; Reports
+  tabulates. Every number in a chart also exists as a plain table row
+  on Reports
+- Occupancy: a 3-segment stacked bar (Occupied/Vacant/Maintenance),
+  not a donut — part-to-whole comparisons are a bar per the dataviz
+  method, donuts are reserved for at-a-glance-only cases
+- Revenue Trend: single-series line + 10%-opacity area fill, one hue,
+  no legend (a single series doesn't need one) — reuses the same
+  6-month `monthly` data Reports' Due-vs-Collected table shows, just
+  plotted as a trend instead of tabulated
+- Building Performance: two ranked horizontal-bar lists (Revenue,
+  Occupancy Rate) — one flat hue per bar, deliberately not a
+  value-ramp (darker = bigger), since building names are a nominal
+  category with no natural order to encode in lightness
+
 ---
 
 # Planned Modules
 
-- Analytics
+None from the original roadmap — Phases 1–7 are all complete. Future
+work comes from Future Enhancements in `01_ROADMAP.md` (search,
+filtering, file uploads, notifications, RBAC, multi-tenant, etc.),
+which are explicitly unsequenced.
 
 ---
 
@@ -656,6 +693,10 @@ Protected (Landlord)
 
 ```
 /dashboard/reports
+```
+
+```
+/dashboard/analytics
 ```
 
 Protected (Tenant)
@@ -828,15 +869,17 @@ Correctness is preferred over speed.
 
 # Next Goal
 
-Phase 6 (Reports) is complete. Start Phase 7 — Analytics: Dashboard
-Charts, Occupancy Analytics, Revenue Trends, Building Performance —
-visualizing the same data `getPortfolioReport` already aggregates,
-rather than collecting anything new.
+None committed. Phases 1–7 — the full original roadmap — are complete:
+Authentication, Buildings/Floors/Flats, Tenant Profiles, Join Requests,
+Lease Management, Rent Management, Utility Bills, Payment History,
+Notices, Activity Logs, Reports, and Analytics. The next piece of work
+should come from Future Enhancements in `01_ROADMAP.md`, chosen
+deliberately rather than assumed — ask before picking one.
 
 Future modules should reuse the same architecture and development patterns
 introduced by the Building, Floors, Flats, Tenant Profile, Join Request,
 Lease, Rent Management, Utility Bills, Payment History, Notices,
-Activity Logs, and Reports modules —
+Activity Logs, Reports, and Analytics modules —
 including baking in breadcrumb and
 back navigation from the start, and routing new Tenant-facing pages under
 the `(tenant)` route group rather than `(landlord)`.
