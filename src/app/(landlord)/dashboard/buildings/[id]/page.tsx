@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { DeleteBuildingButton } from "@/components/building/delete-building-button";
 import { getBuilding } from "@/actions/building/get-building";
 import { getOutstandingBalanceForBuilding } from "@/actions/rent/get-outstanding-balance-for-building";
+import { getPendingJoinRequestsCount } from "@/actions/join-request/get-pending-join-requests-count";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { BackLink } from "@/components/ui/back-link";
+import { StatTile } from "@/components/ui/stat-tile";
 
 type PageProps = {
   params: Promise<{
@@ -31,8 +33,11 @@ export default async function BuildingDetailsPage({
     notFound();
   }
 
-  const { totalOutstanding, flatsWithOutstandingRent } =
-    await getOutstandingBalanceForBuilding(id);
+  const [{ totalOutstanding, flatsWithOutstandingRent }, pendingRequests] =
+    await Promise.all([
+      getOutstandingBalanceForBuilding(id),
+      getPendingJoinRequestsCount(id),
+    ]);
 
   return (
     <div className="space-y-6">
@@ -66,32 +71,8 @@ export default async function BuildingDetailsPage({
             </Button>
           </Link>
 
-          <Link href={`/dashboard/buildings/${building.id}/floors`}>
-            <Button variant="outline">
-              Manage Floors
-            </Button>
-          </Link>
-
-          <Link href={`/dashboard/buildings/${building.id}/requests`}>
-            <Button variant="outline">
-              View Requests
-            </Button>
-          </Link>
-
-          <Link href={`/dashboard/buildings/${building.id}/notices`}>
-            <Button variant="outline">
-              Notices
-            </Button>
-          </Link>
-
-          <Link href={`/dashboard/buildings/${building.id}/activity`}>
-            <Button variant="outline">
-              Activity
-            </Button>
-          </Link>
-
           <Link href={`/dashboard/buildings/${building.id}/edit`}>
-            <Button>
+            <Button variant="outline">
               Edit Building
             </Button>
           </Link>
@@ -101,6 +82,55 @@ export default async function BuildingDetailsPage({
           />
         </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Overview</CardTitle>
+        </CardHeader>
+
+        <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <StatTile label="Status" value={building.status} />
+
+          <StatTile
+            label="Floors"
+            value={building.floors.length}
+            href={`/dashboard/buildings/${building.id}/floors`}
+          />
+
+          <StatTile
+            label="Requests"
+            value={pendingRequests > 0 ? `${pendingRequests} pending` : "View"}
+            href={`/dashboard/buildings/${building.id}/requests`}
+            destructive={pendingRequests > 0}
+          />
+
+          <StatTile
+            label="Notices"
+            value={building.notices.length}
+            href={`/dashboard/buildings/${building.id}/notices`}
+          />
+
+          <StatTile
+            label="Outstanding Rent"
+            value={
+              <>
+                ${totalOutstanding.toFixed(2)}
+                {flatsWithOutstandingRent > 0 &&
+                  ` (${flatsWithOutstandingRent} flat${
+                    flatsWithOutstandingRent === 1 ? "" : "s"
+                  })`}
+              </>
+            }
+            destructive={totalOutstanding > 0}
+          />
+
+          <StatTile
+            label="Activity"
+            value="View"
+            href={`/dashboard/buildings/${building.id}/activity`}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -128,71 +158,6 @@ export default async function BuildingDetailsPage({
           )}
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Overview</CardTitle>
-        </CardHeader>
-
-        <CardContent className="grid gap-4 sm:grid-cols-4">
-          <div>
-            <p className="text-sm text-muted-foreground">
-              Status
-            </p>
-
-            <p className="font-semibold">
-              {building.status}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-sm text-muted-foreground">
-              Floors
-            </p>
-
-            <Link
-              href={`/dashboard/buildings/${building.id}/floors`}
-              className="font-semibold hover:underline"
-            >
-              {building.floors.length}
-            </Link>
-          </div>
-
-          <div>
-            <p className="text-sm text-muted-foreground">
-              Notices
-            </p>
-
-            <Link
-              href={`/dashboard/buildings/${building.id}/notices`}
-              className="font-semibold hover:underline"
-            >
-              {building.notices.length}
-            </Link>
-          </div>
-
-          <div>
-            <p className="text-sm text-muted-foreground">
-              Outstanding Rent
-            </p>
-
-            <p
-              className={
-                totalOutstanding > 0
-                  ? "font-semibold text-destructive"
-                  : "font-semibold"
-              }
-            >
-              ${totalOutstanding.toFixed(2)}
-              {flatsWithOutstandingRent > 0 &&
-                ` (${flatsWithOutstandingRent} flat${
-                  flatsWithOutstandingRent === 1 ? "" : "s"
-                })`}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
     </div>
   );
 }

@@ -15,6 +15,58 @@ work comes from Future Enhancements in `01_ROADMAP.md`, unsequenced.
 
 ---
 
+# [v2.12.0] - UX Simplification Pass
+
+Prompted by direct feedback that the app had accumulated too many
+pages and too many buttons per page. No functionality removed.
+
+## Changed
+
+- Reports and Analytics merged into one page (`/dashboard/reports`) —
+  they showed the exact same portfolio data as two separate sidebar
+  destinations (one as tables, one as charts). `/dashboard/analytics`
+  and its sidebar link are gone; the charts moved onto Reports
+- Building Details' button row cut from 7 buttons to 3 (Quick Setup,
+  Edit Building, Delete Building). Requests, Notices, and Activity
+  moved into the Overview card as clickable stat tiles, alongside the
+  Floors and Outstanding Rent stats already there — Requests turns
+  red with a pending count when something needs a decision.
+  `getPendingJoinRequestsCount` gained an optional `buildingId` filter
+  to support this
+- The main Dashboard replaced its (redundant) chart preview with a
+  "Needs Attention" panel: pending Join Requests and flats with
+  overdue rent, each one click from the exact request/flat — instead
+  of the previous Buildings → Floors → Flats → Flat drill for what
+  used to be the most click-heavy routine task. New action:
+  `src/actions/report/get-needs-attention.ts`
+- Stat tiles (Building Details, Floor Details) now render as bordered,
+  hover-highlighted boxes when clickable, and flat text when not —
+  new shared `src/components/ui/stat-tile.tsx` component, since a
+  plain text link didn't visually read as a button
+- Removed the "Tenants" and "Payments" sidebar placeholders — both had
+  said "Soon" since the first commit, but the functionality they
+  promised was since built (Current Tenant / Rent / Utility Bills
+  cards per flat), just not as dedicated top-level pages, so they'd
+  gone stale and misleading
+
+## Added
+
+- `prisma/seed-demo-landlord.ts` — an additive (never destructive)
+  demo-data script: one demo landlord, 3 buildings, 36 flats, 24
+  leases with realistic staggered histories, ~150 payments, several
+  deliberately overdue rent periods, pending/rejected join requests,
+  notices, and backdated activity log entries, for visualizing Reports
+  and the Needs Attention panel with real-looking data
+
+## Documentation
+
+Updated
+
+- Project Memory, Roadmap — added a "UX Simplification Pass" entry
+  under Phase 7; removed stale references to `/dashboard/analytics`
+
+---
+
 # [v2.11.0] - Analytics
 
 ## Added

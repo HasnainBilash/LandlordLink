@@ -99,20 +99,14 @@ action — see Roadmap)
 
 ## Reports (Phase 6)
 
-✅ Complete (one portfolio-wide page, not a report per category — no
-new models, only aggregation)
-
-## Analytics (Phase 7)
-
-✅ Complete (hand-built SVG/HTML charts, no charting library added;
-visualizes the same `getPortfolioReport` data Reports tabulates)
+✅ Complete — now includes Analytics (Phase 7)'s charts on the same
+page. There is no separate `/dashboard/analytics` route or sidebar
+link; see the UX Simplification Pass note below
 
 ## Current Development
 
 None — see Current Sprint above. All 7 original roadmap phases are
 complete.
-
-🚧 Analytics (Phase 7)
 
 ---
 
@@ -507,22 +501,85 @@ Architecture v2.0 is considered frozen unless intentionally revised.
   reference palette — the project's own `--chart-1..5` CSS tokens are
   still unthemed grayscale placeholders (identical gray in light and
   dark mode), not real hues, so they weren't usable as-is
-- Zero new backend work — `/dashboard/analytics` and the compact
-  charts on the main `/dashboard` page both read `getPortfolioReport`,
-  the exact same action Reports built. Analytics visualizes; Reports
-  tabulates. Every number in a chart also exists as a plain table row
-  on Reports
 - Occupancy: a 3-segment stacked bar (Occupied/Vacant/Maintenance),
   not a donut — part-to-whole comparisons are a bar per the dataviz
   method, donuts are reserved for at-a-glance-only cases
 - Revenue Trend: single-series line + 10%-opacity area fill, one hue,
-  no legend (a single series doesn't need one) — reuses the same
-  6-month `monthly` data Reports' Due-vs-Collected table shows, just
-  plotted as a trend instead of tabulated
+  no legend (a single series doesn't need one)
 - Building Performance: two ranked horizontal-bar lists (Revenue,
   Occupancy Rate) — one flat hue per bar, deliberately not a
   value-ramp (darker = bigger), since building names are a nominal
   category with no natural order to encode in lightness
+- **Merged into Reports** shortly after shipping — see the UX
+  Simplification Pass note immediately below. `/dashboard/analytics`
+  no longer exists; these charts now live on `/dashboard/reports`
+
+### UX Simplification Pass
+
+Prompted by direct feedback that the app had accumulated too many
+pages and too many buttons per page to feel simple. Three concrete
+changes, no functionality removed:
+
+- **Reports + Analytics merged into one page** (`/dashboard/reports`).
+  They showed the exact same `getPortfolioReport` data — one as
+  tables, one as charts — as two separate sidebar destinations. Now
+  one page has both; the Analytics route and sidebar link are gone
+- **Building Details' button row cut from 7 to 3.** Quick Setup, Edit
+  Building, and Delete Building remain as buttons; Requests, Notices,
+  and Activity moved into the Overview card as clickable stat tiles
+  (a label + a linked value — Requests turns red with a "N pending"
+  count when something needs a decision), alongside the Floors and
+  Outstanding Rent stats that already lived there.
+  `getPendingJoinRequestsCount` gained an optional `buildingId` filter
+  to support the per-building pending count
+- **The main Dashboard became a "Needs Attention" hub** instead of a
+  second copy of the Reports charts. New action
+  `src/actions/report/get-needs-attention.ts` surfaces pending Join
+  Requests and flats with `OVERDUE` rent (aggregated across all
+  payments already made on that Rent, so it's the true remaining
+  balance, not the original amount) — each with a direct one-click
+  link to the exact request or flat, instead of the previous
+  Buildings → Floors → Flats → Flat drill
+
+Deliberately not changed in this pass: Flat Details' card stack
+(Overview/Current Tenant/Rent/Utility Bills/Request History) and the
+inline expanding forms (Approve, Record Payment, Add Utility Bill) —
+each card is necessary content, not accidental clutter, and collapsing
+them would trade a scan-once density problem for a click-to-expand
+one. The tenant-facing side (5 nav items, mostly single-purpose pages)
+wasn't touched — it didn't show the same symptoms as the landlord side.
+
+Two follow-ups from user feedback on the first version of this pass:
+
+- **Stat tiles didn't visually read as clickable** — a plain text
+  link doesn't look like a button. Added `src/components/ui/stat-tile.tsx`:
+  a linked stat renders as a bordered, padded box with a hover
+  highlight; a non-linked stat (Status, Occupied, Vacant) stays flat
+  text with no border — so clickable vs. informational is visible at
+  a glance, not just discoverable by hovering everything. Applied to
+  both Building Details and Floor Details (which had the identical
+  "Total Flats" plain-text-link pattern)
+- **Removed the "Tenants" and "Payments" sidebar placeholders.** Both
+  said "Soon" since the very first commit, before Join Requests, Rent,
+  Utility Bills, or Payment History existed. That functionality has
+  since been built — just distributed per-flat (Current Tenant card,
+  Rent/Utility Bills cards) rather than as a dedicated top-level page —
+  so the placeholders were stale, implying unbuilt features that
+  actually exist elsewhere. No dedicated Tenants/Payments list page
+  exists; building one would be new scope, not a fix
+
+### Demo Data
+
+`prisma/seed-demo-landlord.ts` — purely additive, unlike `prisma/seed.ts`
+(which wipes all tables first). Creates one new demo landlord
+(`farhan.ahmed@example.com` / `password123`), 3 buildings, 36 flats (24
+occupied / 9 vacant / 3 maintenance), 24 leases with realistic staggered
+start dates, ~150 rent/utility payments, a handful of deliberately
+overdue rent periods (consistent with the app's own "current month is
+never overdue" rule — only past, fully-elapsed months are), pending and
+rejected join requests, notices, and backdated activity log entries.
+Refuses to run a second time if that email already exists, rather than
+creating duplicates — delete the user (cascades) first for a fresh run.
 
 ---
 
@@ -693,10 +750,6 @@ Protected (Landlord)
 
 ```
 /dashboard/reports
-```
-
-```
-/dashboard/analytics
 ```
 
 Protected (Tenant)

@@ -1,6 +1,9 @@
 import Link from "next/link";
 
 import { getPortfolioReport } from "@/actions/report/get-portfolio-report";
+import { OccupancyBar } from "@/components/analytics/occupancy-bar";
+import { RevenueTrendChart } from "@/components/analytics/revenue-trend-chart";
+import { BuildingPerformanceChart } from "@/components/analytics/building-performance-chart";
 
 import {
   Card,
@@ -104,6 +107,35 @@ export default async function ReportsPage() {
 
           <Card>
             <CardHeader>
+              <CardTitle>Occupancy Breakdown</CardTitle>
+            </CardHeader>
+
+            <CardContent>
+              <OccupancyBar
+                occupied={report.occupancy.occupied}
+                vacant={report.occupancy.vacant}
+                maintenance={report.occupancy.maintenance}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue Trend</CardTitle>
+            </CardHeader>
+
+            <CardContent>
+              <RevenueTrendChart
+                data={report.monthly.map((month) => ({
+                  label: month.label,
+                  value: month.collected,
+                }))}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Monthly Rent — Due vs. Collected</CardTitle>
             </CardHeader>
 
@@ -204,6 +236,43 @@ export default async function ReportsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {report.buildings.length > 1 && (
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Revenue by Building</CardTitle>
+                </CardHeader>
+
+                <CardContent>
+                  <BuildingPerformanceChart
+                    data={report.buildings.map((building) => ({
+                      id: building.id,
+                      name: building.name,
+                      value: building.revenue,
+                    }))}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Occupancy Rate by Building</CardTitle>
+                </CardHeader>
+
+                <CardContent>
+                  <BuildingPerformanceChart
+                    data={report.buildings.map((building) => ({
+                      id: building.id,
+                      name: building.name,
+                      value: building.occupancyRate,
+                    }))}
+                    valueLabel={(value) => `${value.toFixed(0)}%`}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </>
       )}
     </div>

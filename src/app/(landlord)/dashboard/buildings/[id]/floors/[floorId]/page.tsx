@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { BackLink } from "@/components/ui/back-link";
+import { StatTile } from "@/components/ui/stat-tile";
 
 type PageProps = {
   params: Promise<{
@@ -82,31 +83,18 @@ export default async function FloorDetailsPage({ params }: PageProps) {
           <CardTitle>Overview</CardTitle>
         </CardHeader>
 
-        <CardContent className="grid gap-4 sm:grid-cols-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Floor Number</p>
-            <p className="font-semibold">{floor.floorNumber}</p>
-          </div>
+        <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatTile label="Floor Number" value={floor.floorNumber} />
 
-          <div>
-            <p className="text-sm text-muted-foreground">Total Flats</p>
-            <Link
-              href={`/dashboard/buildings/${id}/floors/${floor.id}/flats`}
-              className="font-semibold hover:underline"
-            >
-              {totalFlats}
-            </Link>
-          </div>
+          <StatTile
+            label="Total Flats"
+            value={totalFlats}
+            href={`/dashboard/buildings/${id}/floors/${floor.id}/flats`}
+          />
 
-          <div>
-            <p className="text-sm text-muted-foreground">Occupied</p>
-            <p className="font-semibold">{occupied}</p>
-          </div>
+          <StatTile label="Occupied" value={occupied} />
 
-          <div>
-            <p className="text-sm text-muted-foreground">Vacant</p>
-            <p className="font-semibold">{vacant}</p>
-          </div>
+          <StatTile label="Vacant" value={vacant} />
         </CardContent>
       </Card>
 

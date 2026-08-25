@@ -397,9 +397,10 @@ Status
 
 Features
 
-- Dashboard Charts — a compact Occupancy bar + Revenue Trend chart on
-  the main `/dashboard` landing page, so the numbers are visible on
-  login without a separate click
+- Dashboard Charts — originally a compact Occupancy bar + Revenue
+  Trend chart on the main `/dashboard` landing page; replaced by a
+  "Needs Attention" panel in the UX Simplification Pass below, since
+  it duplicated Reports rather than adding new information
 - Occupancy Analytics — a 3-segment stacked bar (Occupied / Vacant /
   Maintenance), portfolio-wide
 - Revenue Trends — a 6-month line chart (same monthly data Reports'
@@ -407,8 +408,7 @@ Features
 - Building Performance — two ranked horizontal-bar charts (Revenue by
   Building, Occupancy Rate by Building)
 
-No new backend work — every chart on `/dashboard/analytics` (and the
-compact versions on `/dashboard`) reads `getPortfolioReport`, the same
+No new backend work — every chart reads `getPortfolioReport`, the same
 action Reports already built. Analytics visualizes; Reports tabulates.
 Every number shown in a chart also exists as a plain table row on
 Reports — charts are a second view of the same data, not a new source
@@ -419,6 +419,59 @@ categorical colors use the first three slots of a CVD-validated
 reference palette (`src/lib/chart-colors.ts`), since the project's own
 `--chart-1..5` CSS tokens are still unthemed grayscale placeholders,
 not real hues.
+
+**Merged into Reports shortly after shipping** (see UX Simplification
+Pass below) — `/dashboard/analytics` no longer exists as its own route
+or sidebar link; these charts now live directly on `/dashboard/reports`.
+The "Dashboard Charts" feature also changed shape: the compact charts
+were replaced by a "Needs Attention" panel — see below.
+
+---
+
+## UX Simplification Pass
+
+Status
+
+✅ Completed
+
+Prompted by direct feedback that the app had accumulated too many
+pages and too many buttons to feel simple, after all 7 phases shipped.
+Not a new phase of features — a pass over navigation and page density.
+No functionality was removed.
+
+Changes
+
+- **Reports + Analytics merged into one page.** They showed the exact
+  same portfolio data — one as tables, one as charts — as two separate
+  sidebar destinations. Now one page, one sidebar link
+- **Building Details' button row cut from 7 to 3** (Quick Setup, Edit
+  Building, Delete Building). Requests, Notices, and Activity moved
+  into the Overview card as clickable stat tiles alongside Floors and
+  Outstanding Rent — a label + a linked value, with Requests turning
+  red and showing a pending count when something needs a decision
+- **The main Dashboard became a "Needs Attention" hub** instead of a
+  second copy of the Reports charts: pending Join Requests and flats
+  with overdue rent, each one click from the exact flat/request that
+  needs it, instead of a 4-level Buildings → Floors → Flats → Flat
+  drill for the most routine landlord task (checking what needs doing
+  today)
+
+Deliberately not changed: Flat Details' card stack and its inline
+expanding forms (Approve, Record Payment, Add Utility Bill) — that
+content is necessary, not accidental clutter, and the tenant-facing
+side (already lean at 5 nav items) didn't show the same symptoms.
+
+Two follow-ups from user feedback on the first version of this pass:
+
+- Stat tiles didn't visually read as clickable, so a shared
+  `StatTile` component now renders linked stats as a bordered,
+  hover-highlighted box and non-linked stats as flat text — applied to
+  both Building Details and Floor Details
+- Removed the "Tenants" and "Payments" sidebar placeholders. Both had
+  said "Soon" since the very first commit; the functionality they
+  promised has since been built, just distributed per-flat rather than
+  as dedicated top-level pages, so the placeholders had gone stale and
+  misleading rather than accurate
 
 ---
 

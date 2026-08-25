@@ -2,9 +2,6 @@ import Link from "next/link";
 
 import { getPendingJoinRequestsCount } from "@/actions/join-request/get-pending-join-requests-count";
 
-const disabledLinkClass =
-  "flex items-center justify-between rounded-lg px-3 py-2 text-muted-foreground/50 cursor-not-allowed select-none";
-
 export async function AppSidebar() {
   const pendingCount = await getPendingJoinRequestsCount();
 
@@ -58,23 +55,6 @@ export async function AppSidebar() {
         >
           Reports
         </Link>
-
-        <Link
-          href="/dashboard/analytics"
-          className="rounded-lg px-3 py-2 hover:bg-muted"
-        >
-          Analytics
-        </Link>
-
-        <span className={disabledLinkClass} aria-disabled="true">
-          Tenants
-          <span className="text-xs">Soon</span>
-        </span>
-
-        <span className={disabledLinkClass} aria-disabled="true">
-          Payments
-          <span className="text-xs">Soon</span>
-        </span>
 
       </nav>
     </aside>
