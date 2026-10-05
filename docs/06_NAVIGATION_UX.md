@@ -1,5 +1,13 @@
 # Navigation & UX Design
 
+> **Superseded by Upgrade Phase 2.** The page-per-entity structure below was
+> replaced by a smaller one. Landlord: Home · Buildings · Building (tabs:
+> Floors & flats, Requests, Notices, Activity) · Flat · Requests · Reports
+> (tabs: Overview, Past dues, Activity). Tenant: Home · Find a flat ·
+> Building flats · Flat · My requests · Profile. Create/edit forms are
+> dialogs, and old URLs redirect (see `next.config.ts` and
+> `07_UPGRADE_PLAN.md`). The rest of this document is kept as history.
+
 > This document defines how a user moves through LandlordLink —
 > what every page does, how the user arrives there, and how they leave it.
 >

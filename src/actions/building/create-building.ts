@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { createBuildingSchema } from "@/lib/validations/building";
 import { generateAccessCode } from "@/lib/generate-access-code";
 import { logActivity } from "@/lib/log-activity";
+import { revalidateApp } from "@/lib/revalidate";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -19,7 +20,7 @@ export async function createBuilding(
 ): Promise<ActionResult> {
   const session = await auth();
 
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.user.role !== "LANDLORD") {
     return {
       success: false,
       message: "Unauthorized.",
@@ -32,8 +33,9 @@ export async function createBuilding(
     address: formData.get("address"),
     city: formData.get("city"),
     postcode: formData.get("postcode"),
-    country: formData.get("country"),
+    country: formData.get("country") || undefined,
     description: formData.get("description"),
+    status: formData.get("status") || undefined,
   };
 
   const parsed = createBuildingSchema.safeParse(values);
@@ -41,7 +43,7 @@ export async function createBuilding(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Validation failed.",
+      message: "Please fix the highlighted fields.",
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -58,6 +60,7 @@ export async function createBuilding(
           postcode: parsed.data.postcode || null,
           country: parsed.data.country,
           description: parsed.data.description || null,
+          status: parsed.data.status,
           ownerId: session.user.id,
           accessCode: generateAccessCode(),
         },
@@ -93,5 +96,6 @@ export async function createBuilding(
     description: `Created building "${building.name}".`,
   });
 
+  revalidateApp();
   redirect(`/dashboard/buildings/${building.id}`);
 }

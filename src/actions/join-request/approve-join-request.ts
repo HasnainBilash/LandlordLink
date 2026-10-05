@@ -1,14 +1,16 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 import { approveJoinRequestSchema } from "@/lib/validations/lease";
 import { logActivity } from "@/lib/log-activity";
+import { revalidateApp } from "@/lib/revalidate";
 
 import { ActionResult } from "@/types/action-result";
+
+// Thrown inside the transaction to roll it back with a friendly message.
+class ApprovalConflict extends Error {}
 
 export async function approveJoinRequest(
   id: string,
@@ -32,12 +34,24 @@ export async function approveJoinRequest(
         ownerId: session.user.id,
       },
     },
+    include: {
+      flat: { select: { flatNumber: true, deletedAt: true } },
+      tenant: { select: { user: { select: { name: true } } } },
+    },
   });
 
   if (!joinRequest) {
     return {
       success: false,
       message: "Request not found or already resolved.",
+      errors: {},
+    };
+  }
+
+  if (joinRequest.flat.deletedAt) {
+    return {
+      success: false,
+      message: "This flat has been deleted, so the request can't be approved.",
       errors: {},
     };
   }
@@ -51,42 +65,75 @@ export async function approveJoinRequest(
   const parsed = approveJoinRequestSchema.safeParse(values);
 
   if (!parsed.success) {
-    const fieldErrors = parsed.error.flatten().fieldErrors;
-
     return {
       success: false,
-      message: Object.values(fieldErrors).flat()[0] ?? "Validation failed.",
-      errors: fieldErrors,
+      message: "Please fix the highlighted fields.",
+      errors: parsed.error.flatten().fieldErrors,
     };
   }
 
-  const [, , , lease] = await prisma.$transaction([
-    prisma.joinRequest.update({
-      where: { id },
-      data: { status: "APPROVED" },
-    }),
-    prisma.flat.update({
-      where: { id: joinRequest.flatId },
-      data: { status: "OCCUPIED" },
-    }),
-    prisma.joinRequest.updateMany({
-      where: {
-        flatId: joinRequest.flatId,
-        status: "PENDING",
-        NOT: { id },
-      },
-      data: { status: "REJECTED" },
-    }),
-    prisma.lease.create({
-      data: {
-        tenantId: joinRequest.tenantId,
-        flatId: joinRequest.flatId,
-        startDate: parsed.data.startDate,
-        monthlyRent: parsed.data.monthlyRent,
-        deposit: parsed.data.deposit ? Number(parsed.data.deposit) : null,
-      },
-    }),
-  ]);
+  const { flatId, tenantId } = joinRequest;
+
+  let lease;
+
+  try {
+    lease = await prisma.$transaction(async (tx) => {
+      // Lock the flat so two approvals for the same flat can't both pass
+      // the "no active lease" check below.
+      await tx.$queryRaw`SELECT "id" FROM "Flat" WHERE "id" = ${flatId} FOR UPDATE`;
+
+      const claimed = await tx.joinRequest.updateMany({
+        where: { id, status: "PENDING" },
+        data: { status: "APPROVED" },
+      });
+
+      if (claimed.count === 0) {
+        throw new ApprovalConflict("This request was already handled.");
+      }
+
+      const existingLease = await tx.lease.findFirst({
+        where: { flatId, status: "ACTIVE" },
+        select: { id: true },
+      });
+
+      if (existingLease) {
+        throw new ApprovalConflict(
+          "This flat already has an active lease. End it before approving another tenant."
+        );
+      }
+
+      await tx.flat.update({
+        where: { id: flatId },
+        data: { status: "OCCUPIED" },
+      });
+
+      // The flat is taken now, so anyone else waiting on it is turned down.
+      await tx.joinRequest.updateMany({
+        where: { flatId, status: "PENDING", NOT: { id } },
+        data: { status: "REJECTED" },
+      });
+
+      return tx.lease.create({
+        data: {
+          tenantId,
+          flatId,
+          startDate: parsed.data.startDate,
+          monthlyRent: parsed.data.monthlyRent,
+          deposit: parsed.data.deposit ? Number(parsed.data.deposit) : null,
+        },
+      });
+    });
+  } catch (error) {
+    if (error instanceof ApprovalConflict) {
+      return {
+        success: false,
+        message: error.message,
+        errors: {},
+      };
+    }
+
+    throw error;
+  }
 
   await logActivity({
     userId: session.user.id,
@@ -94,16 +141,14 @@ export async function approveJoinRequest(
     entity: "JoinRequest",
     entityId: id,
     buildingId: joinRequest.buildingId,
-    description: `Approved join request and created lease ${lease.id}.`,
+    description: `Approved ${joinRequest.tenant.user.name} for flat ${joinRequest.flat.flatNumber} and created lease ${lease.id}.`,
   });
 
-  revalidatePath("/dashboard/requests");
-  revalidatePath(`/dashboard/buildings/${joinRequest.buildingId}/requests`);
+  revalidateApp();
 
   return {
     success: true,
-    message:
-      "Request approved and lease created. The flat is now marked occupied, and any other pending requests for it were automatically rejected.",
+    message: `Approved. ${joinRequest.tenant.user.name} now has a lease for flat ${joinRequest.flat.flatNumber}.`,
     errors: {},
   };
 }

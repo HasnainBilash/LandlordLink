@@ -1,11 +1,12 @@
 "use server";
 
-import { redirect } from "next/navigation";
-
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { pluralize } from "@/lib/format";
 
 import { createFloorsBulkSchema } from "@/lib/validations/floor";
+import { logActivity } from "@/lib/log-activity";
+import { revalidateApp } from "@/lib/revalidate";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -17,7 +18,7 @@ export async function createFloorsBulk(
 ): Promise<ActionResult> {
   const session = await auth();
 
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.user.role !== "LANDLORD") {
     return {
       success: false,
       message: "Unauthorized.",
@@ -51,7 +52,7 @@ export async function createFloorsBulk(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Validation failed.",
+      message: "Please fix the highlighted fields.",
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -74,7 +75,7 @@ export async function createFloorsBulk(
     (_, index) => fromFloor + index
   );
 
-  await prisma.floor.createMany({
+  const { count } = await prisma.floor.createMany({
     data: floorNumbers.map((floorNumber) => ({
       floorNumber,
       buildingId,
@@ -82,5 +83,31 @@ export async function createFloorsBulk(
     skipDuplicates: true,
   });
 
-  redirect(`/dashboard/buildings/${buildingId}/floors`);
+  if (count === 0) {
+    return {
+      success: false,
+      message: "All of those floors already exist.",
+      errors: {},
+    };
+  }
+
+  await logActivity({
+    userId: session.user.id,
+    action: "CREATE",
+    entity: "Floor",
+    buildingId,
+    description: `Created ${pluralize(count, "floor")} (${fromFloor} to ${toFloor}).`,
+  });
+
+  revalidateApp();
+
+  const skipped = floorCount - count;
+
+  return {
+    success: true,
+    message: `Added ${pluralize(count, "floor")}${
+      skipped > 0 ? ` (${skipped} already existed)` : ""
+    }.`,
+    errors: {},
+  };
 }

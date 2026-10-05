@@ -1,12 +1,11 @@
 "use server";
 
-import { redirect } from "next/navigation";
-
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 import { createNoticeSchema } from "@/lib/validations/notice";
 import { logActivity } from "@/lib/log-activity";
+import { revalidateApp } from "@/lib/revalidate";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -16,7 +15,7 @@ export async function updateNotice(
 ): Promise<ActionResult> {
   const session = await auth();
 
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.user.role !== "LANDLORD") {
     return {
       success: false,
       message: "Unauthorized.",
@@ -53,7 +52,7 @@ export async function updateNotice(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Validation failed.",
+      message: "Please fix the highlighted fields.",
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -77,5 +76,11 @@ export async function updateNotice(
     description: `Updated notice "${parsed.data.title}".`,
   });
 
-  redirect(`/dashboard/buildings/${notice.buildingId}/notices`);
+  revalidateApp();
+
+  return {
+    success: true,
+    message: "Notice saved.",
+    errors: {},
+  };
 }

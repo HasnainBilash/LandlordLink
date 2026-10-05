@@ -1,18 +1,5 @@
-"use client";
-
-import { useState } from "react";
-
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-
-const requestStatusVariant = {
-  PENDING: "outline",
-  APPROVED: "default",
-  REJECTED: "destructive",
-  ENDED: "secondary",
-} as const;
-
-const COLLAPSED_COUNT = 3;
+import { RequestStatusBadge } from "@/components/ui/status-badges";
+import { formatDate } from "@/lib/format";
 
 export type TenantJoinRequestRow = {
   id: string;
@@ -28,61 +15,25 @@ type TenantRequestHistoryListProps = {
 export function TenantRequestHistoryList({
   requests,
 }: TenantRequestHistoryListProps) {
-  const [expanded, setExpanded] = useState(false);
-
-  const visibleRequests = expanded
-    ? requests
-    : requests.slice(0, COLLAPSED_COUNT);
-  const hiddenCount = requests.length - visibleRequests.length;
-
   return (
-    <div className="space-y-4">
-      {visibleRequests.map((request) => (
-        <div
+    <ul className="divide-y">
+      {requests.map((request) => (
+        <li
           key={request.id}
-          className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+          className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
         >
-          <div>
+          <div className="min-w-0">
+            <p className="text-sm">Requested {formatDate(request.createdAt)}</p>
             {request.message && (
-              <p className="text-sm italic text-muted-foreground">
-                &quot;{request.message}&quot;
+              <p className="text-sm text-muted-foreground italic">
+                &ldquo;{request.message}&rdquo;
               </p>
             )}
           </div>
 
-          <div className="text-right">
-            <Badge variant={requestStatusVariant[request.status]}>
-              {request.status}
-            </Badge>
-
-            <p className="mt-1 text-xs text-muted-foreground">
-              {new Date(request.createdAt).toLocaleDateString()}
-            </p>
-          </div>
-        </div>
+          <RequestStatusBadge status={request.status} />
+        </li>
       ))}
-
-      {hiddenCount > 0 && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full"
-          onClick={() => setExpanded(true)}
-        >
-          Show {hiddenCount} more
-        </Button>
-      )}
-
-      {expanded && requests.length > COLLAPSED_COUNT && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full"
-          onClick={() => setExpanded(false)}
-        >
-          Show less
-        </Button>
-      )}
-    </div>
+    </ul>
   );
 }

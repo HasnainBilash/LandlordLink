@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { flatStatusValues } from "@/lib/validations/flat";
+import { manualFlatStatusValues } from "@/lib/validations/flat";
 
 export const quickSetupSchema = z
   .object({
@@ -39,7 +39,7 @@ export const quickSetupSchema = z
       .min(0, "Monthly rent cannot be negative.")
       .max(9999999.99, "Monthly rent is too high."),
 
-    status: z.enum(flatStatusValues).default("VACANT"),
+    status: z.enum(manualFlatStatusValues).default("VACANT"),
   })
   .refine((data) => data.toFloor >= data.fromFloor, {
     message:

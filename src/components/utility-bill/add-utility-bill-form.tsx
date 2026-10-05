@@ -1,145 +1,108 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 
 import { createUtilityBill } from "@/actions/utility-bill/create-utility-bill";
 
 import { Button } from "@/components/ui/button";
+import { FieldError, FormError } from "@/components/ui/field-error";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSingleFlightAction } from "@/hooks/use-single-flight-action";
+import { NativeSelect } from "@/components/ui/native-select";
+import { useActionForm } from "@/hooks/use-action-form";
+import { toDateInputValue } from "@/lib/format";
+import { UTILITY_TYPE_LABELS } from "@/lib/utility-bill";
 
-type AddUtilityBillFormProps = {
+type AddUtilityBillButtonProps = {
   leaseId: string;
 };
 
-export function AddUtilityBillForm({ leaseId }: AddUtilityBillFormProps) {
-  const router = useRouter();
-  const [isAdding, setIsAdding] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string[]>>({});
+export function AddUtilityBillButton({ leaseId }: AddUtilityBillButtonProps) {
+  return (
+    <FormDialog
+      title="Add a utility bill"
+      description="The tenant sees it on their flat page."
+      trigger={
+        <Button size="sm" variant="outline">
+          <Plus />
+          Add bill
+        </Button>
+      }
+    >
+      {(close) => <AddUtilityBillForm leaseId={leaseId} onSuccess={close} />}
+    </FormDialog>
+  );
+}
 
-  const { run, isPending } = useSingleFlightAction((formData: FormData) =>
-    createUtilityBill(leaseId, formData)
+function AddUtilityBillForm({
+  leaseId,
+  onSuccess,
+}: {
+  leaseId: string;
+  onSuccess: () => void;
+}) {
+  const { submit, isPending, errors, message } = useActionForm(
+    (formData) => createUtilityBill(leaseId, formData),
+    { onSuccess }
   );
 
-  async function handleSubmit(formData: FormData) {
-    setErrors({});
-
-    const result = await run(formData);
-
-    if (!result) return;
-
-    if (!result.success) {
-      setErrors(result.errors);
-      return;
-    }
-
-    setIsAdding(false);
-    router.refresh();
-  }
-
-  if (!isAdding) {
-    return (
-      <Button size="sm" variant="outline" onClick={() => setIsAdding(true)}>
-        Add Utility Bill
-      </Button>
-    );
-  }
+  const today = toDateInputValue(new Date());
 
   return (
-    <form action={handleSubmit} className="space-y-3 rounded-lg border p-3">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1">
+    <form action={submit} className="space-y-4">
+      <FormError message={message} />
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
           <Label htmlFor="type">Type</Label>
-
-          <select
-            id="type"
-            name="type"
-            defaultValue="ELECTRICITY"
-            className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
-          >
-            <option value="ELECTRICITY">Electricity</option>
-            <option value="GAS">Gas</option>
-            <option value="WATER">Water</option>
-            <option value="INTERNET">Internet</option>
-            <option value="SECURITY">Security</option>
-            <option value="OTHER">Other</option>
-          </select>
-
-          {errors.type && (
-            <p className="text-sm text-red-500">{errors.type[0]}</p>
-          )}
+          <NativeSelect id="type" name="type" defaultValue="ELECTRICITY">
+            {Object.entries(UTILITY_TYPE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </NativeSelect>
+          <FieldError errors={errors.type} />
         </div>
 
-        <div className="space-y-1">
-          <Label htmlFor="period">Billing Month</Label>
-
+        <div className="space-y-1.5">
+          <Label htmlFor="period">Billing month</Label>
           <Input
             id="period"
             name="period"
             type="month"
             required
-            defaultValue={new Date().toISOString().slice(0, 7)}
+            defaultValue={today.slice(0, 7)}
           />
-
-          {errors.period && (
-            <p className="text-sm text-red-500">{errors.period[0]}</p>
-          )}
+          <FieldError errors={errors.period} />
         </div>
 
-        <div className="space-y-1">
-          <Label htmlFor="amount">Amount</Label>
-
+        <div className="space-y-1.5">
+          <Label htmlFor="amount">Amount (৳)</Label>
           <Input
             id="amount"
             name="amount"
             type="number"
+            inputMode="decimal"
             step="0.01"
             min="0.01"
             required
+            placeholder="1500"
           />
-
-          {errors.amount && (
-            <p className="text-sm text-red-500">{errors.amount[0]}</p>
-          )}
+          <FieldError errors={errors.amount} />
         </div>
 
-        <div className="space-y-1">
-          <Label htmlFor="dueDate">Due Date</Label>
-
-          <Input
-            id="dueDate"
-            name="dueDate"
-            type="date"
-            required
-            defaultValue={new Date().toISOString().slice(0, 10)}
-          />
-
-          {errors.dueDate && (
-            <p className="text-sm text-red-500">{errors.dueDate[0]}</p>
-          )}
+        <div className="space-y-1.5">
+          <Label htmlFor="dueDate">Due date</Label>
+          <Input id="dueDate" name="dueDate" type="date" required defaultValue={today} />
+          <FieldError errors={errors.dueDate} />
         </div>
       </div>
 
-      <div className="flex gap-3">
-        <Button type="submit" size="sm" disabled={isPending}>
-          {isPending ? "Adding..." : "Add Bill"}
-        </Button>
-
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={isPending}
-          onClick={() => {
-            setIsAdding(false);
-            setErrors({});
-          }}
-        >
-          Cancel
-        </Button>
-      </div>
+      <Button type="submit" className="w-full" disabled={isPending}>
+        {isPending ? "Adding..." : "Add bill"}
+      </Button>
     </form>
   );
 }

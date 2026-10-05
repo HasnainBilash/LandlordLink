@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { reconcileRentForLeases } from "@/lib/reconcile-rent";
+import { reconcileRentForOwner } from "@/lib/reconcile-rent";
 import { MONTH_NAMES } from "@/lib/rent";
 
 const MONTHLY_HISTORY_LENGTH = 6;
@@ -81,7 +81,7 @@ export async function getPortfolioReport() {
 
   const leaseIds = activeLeases.map((lease) => lease.id);
 
-  await reconcileRentForLeases(leaseIds);
+  await reconcileRentForOwner(session.user.id);
 
   // All money totals are summed by Postgres; only a handful of rows
   // (one per building, or per building+month) come back.
@@ -119,6 +119,7 @@ export async function getPortfolioReport() {
           GROUP BY "utilityBillId"
         ) p ON p."utilityBillId" = u."id"
         WHERE l."status" = 'ACTIVE'
+          AND u."writtenOffAt" IS NULL
           AND fl."buildingId" IN (${buildingIdList})
         GROUP BY fl."buildingId"
       `,

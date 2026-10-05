@@ -1,47 +1,29 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 import { endLease } from "@/actions/join-request/end-lease";
 
 import { Button } from "@/components/ui/button";
-import { useSingleFlightAction } from "@/hooks/use-single-flight-action";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 
 type EndLeaseButtonProps = {
   requestId: string;
+  tenantName: string;
 };
 
-export function EndLeaseButton({ requestId }: EndLeaseButtonProps) {
-  const router = useRouter();
-  const { run, isPending } = useSingleFlightAction(endLease);
-
-  async function handleEndLease() {
-    const confirmed = window.confirm(
-      "End this lease? The flat will be marked vacant again, and this tenant will no longer see it as their current flat."
-    );
-
-    if (!confirmed) return;
-
-    const result = await run(requestId);
-
-    if (!result) return;
-
-    if (!result.success) {
-      alert(result.message);
-      return;
-    }
-
-    router.refresh();
-  }
-
+export function EndLeaseButton({ requestId, tenantName }: EndLeaseButtonProps) {
   return (
-    <Button
-      size="sm"
-      variant="destructive"
-      disabled={isPending}
-      onClick={handleEndLease}
-    >
-      {isPending ? "Working..." : "End Lease"}
-    </Button>
+    <ConfirmAction
+      title={`End ${tenantName}'s lease?`}
+      description="The flat becomes vacant and no more rent is billed. Anything still unpaid stays on record under Reports → Past dues."
+      confirmLabel="End lease"
+      pendingLabel="Ending..."
+      destructive
+      trigger={
+        <Button size="sm" variant="outline">
+          End lease
+        </Button>
+      }
+      action={() => endLease(requestId)}
+    />
   );
 }

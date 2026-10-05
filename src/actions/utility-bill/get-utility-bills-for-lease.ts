@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 export async function getUtilityBillsForLease(leaseId: string) {
   const session = await auth();
 
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.user.role !== "LANDLORD") {
     return [];
   }
 

@@ -29,7 +29,7 @@ async function main() {
   await prisma.building.deleteMany();
   await prisma.user.deleteMany();
 
-  const passwordHash = await bcrypt.hash("password123", 10);
+  const passwordHash = await bcrypt.hash("11111111", 10);
 
   const landlord = await prisma.user.create({
     data: {

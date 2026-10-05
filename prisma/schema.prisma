@@ -35,6 +35,9 @@ enum RentStatus {
   PARTIAL
   PAID
   OVERDUE
+  // The landlord gave up on collecting what is left (e.g. a tenant who
+  // moved out owing rent). Excluded from every outstanding total.
+  WRITTEN_OFF
 }
 
 enum UtilityType {
@@ -332,6 +335,10 @@ model UtilityBill {
   amount Decimal @db.Decimal(10, 2)
 
   dueDate DateTime
+
+  // Utility bills have no status column (it is derived from payments);
+  // this marks the unpaid remainder as written off, like RentStatus.WRITTEN_OFF.
+  writtenOffAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

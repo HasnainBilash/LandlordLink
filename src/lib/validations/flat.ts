@@ -2,12 +2,18 @@ import { z } from "zod";
 
 export const flatStatusValues = ["VACANT", "OCCUPIED", "MAINTENANCE"] as const;
 
+// OCCUPIED is never set by hand — it follows from an active lease
+// (approving a request sets it, ending the lease clears it).
+export const manualFlatStatusValues = ["VACANT", "MAINTENANCE"] as const;
+
 export const createFlatSchema = z.object({
   flatNumber: z
     .string()
     .trim()
     .min(1, "Flat number is required.")
-    .max(20, "Flat number is too long."),
+    .max(20, "Flat number is too long.")
+    // "~" marks deleted flats (see lib/tombstone.ts).
+    .refine((value) => !value.includes("~"), "Flat number can't contain ~."),
 
   bedrooms: z.coerce
     .number()
@@ -26,7 +32,7 @@ export const createFlatSchema = z.object({
     .min(0, "Monthly rent cannot be negative.")
     .max(9999999.99, "Monthly rent is too high."),
 
-  status: z.enum(flatStatusValues).default("VACANT"),
+  status: z.enum(manualFlatStatusValues).default("VACANT"),
 });
 
 export type CreateFlatInput = z.infer<typeof createFlatSchema>;
@@ -62,7 +68,7 @@ export const createFlatsBulkSchema = z
       .min(0, "Monthly rent cannot be negative.")
       .max(9999999.99, "Monthly rent is too high."),
 
-    status: z.enum(flatStatusValues).default("VACANT"),
+    status: z.enum(manualFlatStatusValues).default("VACANT"),
   })
   .refine((data) => data.toFlatNumber >= data.fromFlatNumber, {
     message:

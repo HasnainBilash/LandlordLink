@@ -1,12 +1,11 @@
 "use server";
 
-import { redirect } from "next/navigation";
-
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 import { createBuildingSchema } from "@/lib/validations/building";
 import { logActivity } from "@/lib/log-activity";
+import { revalidateApp } from "@/lib/revalidate";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -16,7 +15,7 @@ export async function updateBuilding(
 ): Promise<ActionResult> {
   const session = await auth();
 
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.user.role !== "LANDLORD") {
     return {
       success: false,
       message: "Unauthorized.",
@@ -29,8 +28,9 @@ export async function updateBuilding(
     address: formData.get("address"),
     city: formData.get("city"),
     postcode: formData.get("postcode"),
-    country: formData.get("country"),
+    country: formData.get("country") || undefined,
     description: formData.get("description"),
+    status: formData.get("status") || undefined,
   };
 
   const parsed = createBuildingSchema.safeParse(values);
@@ -38,7 +38,7 @@ export async function updateBuilding(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Validation failed.",
+      message: "Please fix the highlighted fields.",
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -56,6 +56,7 @@ export async function updateBuilding(
       postcode: parsed.data.postcode || null,
       country: parsed.data.country,
       description: parsed.data.description || null,
+      status: parsed.data.status,
     },
   });
 
@@ -76,5 +77,11 @@ export async function updateBuilding(
     description: `Updated building "${parsed.data.name}".`,
   });
 
-  redirect(`/dashboard/buildings/${id}`);
+  revalidateApp();
+
+  return {
+    success: true,
+    message: "Building saved.",
+    errors: {},
+  };
 }

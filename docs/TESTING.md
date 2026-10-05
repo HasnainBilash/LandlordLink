@@ -46,7 +46,7 @@ npm start               # open http://localhost:3000
 
 ## 2. Test accounts
 
-Password for all: **`Test@1234`**
+Password for all: **`11111111`**
 
 | Email | Role | What's special about it |
 |---|---|---|
@@ -66,7 +66,7 @@ end. You need them to request a flat as a tenant.
 
 | Email | Password | What it has |
 |---|---|---|
-| `farhan.ahmed@example.com` | `password123` | 3 buildings, ~30 tenants, 6–8 months of rent and payment history, overdue and partial rent, pending and rejected requests, notices, activity log |
+| `farhan.ahmed@example.com` | `11111111` | 3 buildings, ~30 tenants, 6–8 months of rent and payment history, overdue and partial rent, pending and rejected requests, notices, activity log |
 
 Create or refresh it with:
 

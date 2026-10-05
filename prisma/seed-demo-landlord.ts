@@ -8,13 +8,14 @@
 import { PrismaClient, UserRole, FlatStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { generateAccessCode } from "../src/lib/generate-access-code";
+import { formatMoney } from "../src/lib/format";
 
 const prisma = new PrismaClient();
 
 const DEMO_LANDLORD = {
   name: "Farhan Ahmed",
   email: "farhan.ahmed@example.com",
-  password: "password123",
+  password: "11111111",
 };
 
 const BUILDINGS = [
@@ -98,7 +99,7 @@ async function createAccessCode() {
 }
 
 async function createTenant(fullName: string, emailCounter: number) {
-  const passwordHash = await bcrypt.hash("password123", 10);
+  const passwordHash = await bcrypt.hash(DEMO_LANDLORD.password, 10);
   const email = slugEmail(fullName, emailCounter);
 
   const user = await prisma.user.create({
@@ -127,13 +128,13 @@ type OccupiedBehavior = {
 
 const OCCUPIED_PATTERN: OccupiedBehavior[] = [
   { startMonthsAgo: 6, deposit: true, rentDelta: 0, outcome: "clean" },
-  { startMonthsAgo: 3, deposit: false, rentDelta: 20, outcome: "clean" },
+  { startMonthsAgo: 3, deposit: false, rentDelta: 500, outcome: "clean" },
   { startMonthsAgo: 1, deposit: false, rentDelta: 0, outcome: "clean-recent-pending" },
-  { startMonthsAgo: 4, deposit: true, rentDelta: -30, outcome: "overdue-1" },
+  { startMonthsAgo: 4, deposit: true, rentDelta: -1000, outcome: "overdue-1" },
   { startMonthsAgo: 5, deposit: false, rentDelta: 0, outcome: "utility-overdue" },
-  { startMonthsAgo: 7, deposit: true, rentDelta: 50, outcome: "overdue-2" },
+  { startMonthsAgo: 7, deposit: true, rentDelta: 1500, outcome: "overdue-2" },
   { startMonthsAgo: 2, deposit: false, rentDelta: 0, outcome: "partial-current" },
-  { startMonthsAgo: 8, deposit: true, rentDelta: -10, outcome: "clean" },
+  { startMonthsAgo: 8, deposit: true, rentDelta: -500, outcome: "clean" },
 ];
 
 type ActivityRow = {
@@ -226,7 +227,8 @@ async function main() {
       for (let unit = 1; unit <= pattern.length; unit++) {
         const status = pattern[unit - 1];
         const flatNumber = `${floorNumber}0${unit}`;
-        const baseRent = 800 + floorNumber * 100 + unit * 25;
+        // Realistic Dhaka/Chattogram rents in taka: ৳17,000–৳24,000.
+        const baseRent = 15000 + floorNumber * 1500 + unit * 500;
 
         const flat = await prisma.flat.create({
           data: {
@@ -264,7 +266,7 @@ async function main() {
             },
           });
 
-          const leaseRent = Math.max(300, baseRent + behavior.rentDelta);
+          const leaseRent = Math.max(8000, baseRent + behavior.rentDelta);
 
           const lease = await prisma.lease.create({
             data: {
@@ -354,7 +356,7 @@ async function main() {
                 action: "PAY",
                 entity: "Rent",
                 entityId: rent.id,
-                description: `Recorded rent payment of $${paidAmount.toFixed(2)} for flat ${flatNumber} (${month}/${year}).`,
+                description: `Recorded rent payment of ${formatMoney(paidAmount)} for flat ${flatNumber} (${month}/${year}).`,
                 createdAt: payment.paidAt,
               });
             }
@@ -371,7 +373,7 @@ async function main() {
           const utilityMonths = periods.slice(-2);
 
           for (const { month, year } of utilityMonths) {
-            const utilityAmount = 40 + unit * 5;
+            const utilityAmount = 1200 + unit * 150;
 
             const bill = await prisma.utilityBill.create({
               data: {
@@ -403,7 +405,7 @@ async function main() {
                 action: "PAY",
                 entity: "UtilityBill",
                 entityId: bill.id,
-                description: `Recorded utility payment of $${utilityAmount.toFixed(2)} for flat ${flatNumber}.`,
+                description: `Recorded utility payment of ${formatMoney(utilityAmount)} for flat ${flatNumber}.`,
                 createdAt: payment.paidAt,
               });
             }
@@ -538,7 +540,7 @@ async function main() {
   console.log(`  Vacant flats: ${vacantCount}`);
   console.log(`  Overdue rent periods created: ${overdueCount}`);
   console.log(`  Activity log entries: ${activityRows.length}`);
-  console.log("  All demo tenant accounts use password: password123");
+  console.log(`  All demo tenant accounts use password: ${DEMO_LANDLORD.password}`);
 }
 
 main()

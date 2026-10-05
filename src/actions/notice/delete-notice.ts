@@ -1,17 +1,16 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/log-activity";
+import { revalidateApp } from "@/lib/revalidate";
 
 import { ActionResult } from "@/types/action-result";
 
 export async function deleteNotice(id: string): Promise<ActionResult> {
   const session = await auth();
 
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.user.role !== "LANDLORD") {
     return {
       success: false,
       message: "Unauthorized.",
@@ -51,7 +50,7 @@ export async function deleteNotice(id: string): Promise<ActionResult> {
     description: `Deleted notice "${notice.title}".`,
   });
 
-  revalidatePath(`/dashboard/buildings/${notice.buildingId}/notices`);
+  revalidateApp();
 
   return {
     success: true,

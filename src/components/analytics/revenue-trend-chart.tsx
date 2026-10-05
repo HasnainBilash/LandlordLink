@@ -1,4 +1,5 @@
 import { CHART_COLORS, CHART_INK } from "@/lib/chart-colors";
+import { formatMoney } from "@/lib/format";
 
 type RevenueTrendChartProps = {
   data: { label: string; value: number }[];
@@ -65,7 +66,7 @@ export function RevenueTrendChart({ data }: RevenueTrendChartProps) {
       height={HEIGHT}
       role="img"
       aria-label={`Revenue by month: ${data
-        .map((d) => `${d.label} $${d.value.toFixed(2)}`)
+        .map((d) => `${d.label} ${formatMoney(d.value)}`)
         .join(", ")}`}
     >
       {gridlines.map((line) => (
@@ -84,7 +85,7 @@ export function RevenueTrendChart({ data }: RevenueTrendChartProps) {
             fontSize={10}
             fill={CHART_INK.muted}
           >
-            ${Math.round(line.value).toLocaleString()}
+            {formatMoney(Math.round(line.value))}
           </text>
         </g>
       ))}
@@ -116,7 +117,7 @@ export function RevenueTrendChart({ data }: RevenueTrendChartProps) {
             strokeWidth={2}
           >
             <title>
-              {p.label}: ${p.value.toFixed(2)}
+              {p.label}: {formatMoney(p.value)}
             </title>
           </circle>
 
@@ -143,7 +144,7 @@ export function RevenueTrendChart({ data }: RevenueTrendChartProps) {
           fill={CHART_INK.primary}
           textAnchor="end"
         >
-          ${last.value.toFixed(2)}
+          {formatMoney(last.value)}
         </text>
       )}
     </svg>

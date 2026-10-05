@@ -80,6 +80,11 @@ export async function registerUser(
         email: parsed.data.email,
         passwordHash,
         role: parsed.data.role,
+        // Tenants get an (empty, optional) profile right away so they can
+        // request flats without an extra "complete your profile" step.
+        ...(parsed.data.role === "TENANT"
+          ? { tenantProfile: { create: {} } }
+          : {}),
       },
     });
 

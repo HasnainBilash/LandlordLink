@@ -1,51 +1,65 @@
 "use client";
 
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  BarChart3,
+  Building2,
+  Inbox,
+  LayoutDashboard,
+  Search,
+  UserRound,
+  type LucideIcon,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-type SidebarNavProps = {
-  requestsBadge: ReactNode;
+import type { NavIcon, NavItem } from "./nav-types";
+
+const ICONS: Record<NavIcon, LucideIcon> = {
+  home: LayoutDashboard,
+  buildings: Building2,
+  requests: Inbox,
+  reports: BarChart3,
+  search: Search,
+  profile: UserRound,
 };
 
-const LINKS = [
-  { href: "/dashboard", label: "Dashboard", exact: true },
-  { href: "/dashboard/buildings", label: "Buildings", exact: false },
-  { href: "/dashboard/requests", label: "Requests", exact: false },
-  { href: "/dashboard/activity", label: "Activity", exact: false },
-  { href: "/dashboard/reports", label: "Reports", exact: false },
-] as const;
+type SidebarNavProps = {
+  items: NavItem[];
+  onNavigate?: () => void;
+};
 
-function isActive(pathname: string, href: string, exact?: boolean) {
-  if (exact) return pathname === href;
-  return pathname === href || pathname.startsWith(`${href}/`);
+function isActive(pathname: string, item: NavItem) {
+  if (item.exact) return pathname === item.href;
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
-export function SidebarNav({ requestsBadge }: SidebarNavProps) {
+export function SidebarNav({ items, onNavigate }: SidebarNavProps) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-col gap-2 p-4">
-      {LINKS.map((link) => {
-        const active = isActive(pathname, link.href, link.exact);
+    <nav className="flex flex-col gap-1 p-3">
+      {items.map((item) => {
+        const active = isActive(pathname, item);
+        const Icon = ICONS[item.icon];
 
         return (
           <Link
-            key={link.href}
-            href={link.href}
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center justify-between rounded-lg px-3 py-2",
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
               active
-                ? "bg-muted font-medium"
-                : "hover:bg-muted"
+                ? "bg-muted font-medium text-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
-            {link.label}
-
-            {link.href === "/dashboard/requests" && requestsBadge}
+            <Icon className="size-4 shrink-0" />
+            <span className="flex-1">{item.label}</span>
+            {item.badge}
           </Link>
         );
       })}

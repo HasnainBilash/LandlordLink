@@ -59,25 +59,58 @@ checks, Phase 1 checks).
 
 Goal: fewer pages, fewer clicks, works on a phone.
 
-- [ ] Building page becomes the hub, with tabs: Units · Requests · Notices · Activity.
-      Floors are shown as sections with their flats in a grid
-      (Floor detail and Floor-flats pages are merged away).
-- [ ] Flat page at a short URL: `/dashboard/flats/[id]`.
-- [ ] Create/edit forms for floors, flats and notices open in dialogs
-      instead of separate pages (~15 page files removed).
-- [ ] Landlord nav: Home · Buildings · Requests · Reports (Activity lives
+- [x] Building page is the hub, with tabs: Floors & flats · Requests ·
+      Notices · Activity. Floors are sections with their flats as tiles
+      (tenant name, rent, overdue flag). Floor and floor-flats pages are gone.
+- [x] Flat page at a short URL: `/dashboard/flats/[id]`.
+- [x] Create/edit for buildings, floors, flats, notices, payments, bills
+      and lease approval open in dialogs; deletes and other one-click
+      actions use a confirmation dialog. Every form shows its errors.
+- [x] Landlord nav: Home · Buildings · Requests · Reports (Activity lives
       in Reports and in each building).
-- [ ] Home combines "Needs attention" with the key report numbers.
-- [ ] Tenant area: Home (my flat, bills, notices) · Find a flat · Requests · Profile.
-- [ ] Mobile layout: collapsible sidebar (sheet), responsive tables.
-- [ ] Money shown via one `formatMoney()` helper, default ৳ BDT.
-- [ ] Fix `<Link><Button>` nesting (invalid HTML) everywhere.
-- [ ] Old URLs redirect to the new ones.
-- [ ] Past dues: rent left unpaid when a lease ends is kept (never
-      deleted — it is financial history and feeds Reports). It is shown
-      in a "Past tenants with dues" list where the landlord can record a
-      late payment or **write it off** (new WRITTEN_OFF status, excluded
-      from outstanding totals).
+- [x] Home combines "Needs attention" with the key report numbers.
+- [x] Tenant area: Home (my flat, what I owe, notices) · Find a flat ·
+      My requests · Profile. Tenants can jump to a building by its access
+      code; the request dialog pre-fills it.
+- [x] Mobile layout: slide-out menu, stacked cards, scrolling tables.
+- [x] Money via one `formatMoney()` helper (৳, lakh grouping); dates via
+      `formatDate()` in Asia/Dhaka.
+- [x] No `<Link><Button>` nesting (`ButtonLink` component).
+- [x] Old URLs redirect to the new ones (next.config.ts).
+- [x] Past dues: unpaid rent/bills of ended leases are kept and listed
+      under Reports → Past dues, where the landlord records late payments
+      or writes the balance off (RentStatus WRITTEN_OFF,
+      UtilityBill.writtenOffAt).
+
+Pages: landlord 22 → 6, tenant 9 → 6.
+
+### Also fixed in Phase 2
+
+- [x] **Security:** the flat page sent each requesting tenant's full user
+      row — including the password hash — to the browser. Tenant queries
+      now select only name/email; building queries never send the access
+      code to tenants.
+- [x] A flat, floor or building with an active lease can no longer be
+      deleted (it left leases and rent attached to deleted flats). Deleting
+      also declines pending requests and takes floors/flats with it.
+- [x] A deleted floor or flat number can be reused right away (it used to
+      say "already in use" forever).
+- [x] Form validation errors were silently thrown away on most create and
+      edit pages; they now show next to the field.
+- [x] Approving two requests for the same flat at the same time could
+      create two active leases; approval now locks the flat.
+- [x] Flat status can't be set to Occupied by hand (or changed while
+      leased) — it follows the lease.
+- [x] Quick setup could add flats to deleted floors and ran one query per
+      floor inside a transaction (timeouts on big buildings); now bulk.
+- [x] Tenants had to "complete" an all-optional profile before
+      requesting; the profile is created automatically now.
+- [x] Broken "Browse Flats" link on the request page (went to a 404).
+- [x] The font was never applied (a CSS variable referenced itself), so
+      the app rendered in the browser's default serif font.
+- [x] Flat numbers sort naturally (2 before 10).
+- [x] Dates no longer depend on the server's or browser's locale.
+- [x] Demo seed uses realistic taka rents.
 
 ---
 

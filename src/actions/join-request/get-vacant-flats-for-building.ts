@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { compareFlatNumbers } from "@/lib/format";
 
 export async function getVacantFlatsForBuilding(buildingId: string) {
   const session = await auth();
@@ -10,7 +11,7 @@ export async function getVacantFlatsForBuilding(buildingId: string) {
     return [];
   }
 
-  return prisma.flat.findMany({
+  const flats = await prisma.flat.findMany({
     where: {
       status: "VACANT",
       deletedAt: null,
@@ -23,15 +24,21 @@ export async function getVacantFlatsForBuilding(buildingId: string) {
         },
       },
     },
-    orderBy: {
-      monthlyRent: "asc",
-    },
-    include: {
-      floor: {
-        include: {
-          building: true,
-        },
-      },
+    select: {
+      id: true,
+      flatNumber: true,
+      bedrooms: true,
+      bathrooms: true,
+      monthlyRent: true,
+      floor: { select: { floorNumber: true, name: true } },
     },
   });
+
+  return flats
+    .map((flat) => ({ ...flat, monthlyRent: Number(flat.monthlyRent) }))
+    .sort(
+      (a, b) =>
+        a.floor.floorNumber - b.floor.floorNumber ||
+        compareFlatNumbers(a.flatNumber, b.flatNumber)
+    );
 }

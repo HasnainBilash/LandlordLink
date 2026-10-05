@@ -1,75 +1,77 @@
 import { notFound } from "next/navigation";
+import { MapPin } from "lucide-react";
 
 import { getBuildingForTenant } from "@/actions/join-request/get-building-for-tenant";
-import { getVacantFlatsForBuilding } from "@/actions/join-request/get-vacant-flats-for-building";
 import { getMyJoinRequests } from "@/actions/join-request/get-my-join-requests";
+import { getVacantFlatsForBuilding } from "@/actions/join-request/get-vacant-flats-for-building";
 
-import { BackLink } from "@/components/ui/back-link";
-import { Card, CardContent } from "@/components/ui/card";
 import { AvailableFlatCard } from "@/components/join-request/available-flat-card";
+import { PageHeader } from "@/components/layout/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type PageProps = {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ code?: string }>;
 };
 
 export default async function BuildingVacantFlatsPage({
   params,
+  searchParams,
 }: PageProps) {
   const { id } = await params;
+  const { code } = await searchParams;
 
-  const building = await getBuildingForTenant(id);
+  const [building, flats, myPendingRequests] = await Promise.all([
+    getBuildingForTenant(id),
+    getVacantFlatsForBuilding(id),
+    getMyJoinRequests("PENDING"),
+  ]);
 
   if (!building) {
     notFound();
   }
 
-  const [vacantFlats, myRequests] = await Promise.all([
-    getVacantFlatsForBuilding(id),
-    getMyJoinRequests(),
-  ]);
-
-  const flats = vacantFlats.map((flat) => ({
-    ...flat,
-    monthlyRent: Number(flat.monthlyRent),
-  }));
-
-  const requestedFlatIds = new Set(
-    myRequests
-      .filter((request) => request.status === "PENDING")
-      .map((request) => request.flatId)
-  );
+  const requestedFlatIds = new Set(myPendingRequests.map((request) => request.flatId));
 
   return (
-    <div className="space-y-6">
-      <BackLink href="/tenant/buildings" label="Search Buildings" />
+    <>
+      <PageHeader
+        breadcrumbs={[
+          { label: "Find a flat", href: "/tenant/buildings" },
+          { label: building.name },
+        ]}
+        title={building.name}
+        description={
+          <span className="flex items-center gap-1">
+            <MapPin className="size-3.5" />
+            {building.address}, {building.city}
+          </span>
+        }
+      />
 
-      <div>
-        <h1 className="text-3xl font-bold">{building.name}</h1>
-
-        <p className="text-muted-foreground">
-          {building.address}, {building.city}
+      {building.description && (
+        <p className="text-sm whitespace-pre-wrap text-muted-foreground">
+          {building.description}
         </p>
-      </div>
+      )}
 
       {flats.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            No vacant flats in this building right now.
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="No vacant flats right now"
+          description="Every flat in this building is taken. Check back later."
+        />
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {flats.map((flat) => (
             <AvailableFlatCard
               key={flat.id}
               flat={flat}
               alreadyRequested={requestedFlatIds.has(flat.id)}
+              accessCode={code}
             />
           ))}
         </div>
       )}
-    </div>
+    </>
   );
 }

@@ -8,31 +8,23 @@ type StatusFilterOption = {
 };
 
 type StatusFilterProps = {
-  basePath: string;
-  paramName?: string;
   options: StatusFilterOption[];
   active: string;
+  hrefFor: (value: string) => string;
 };
 
-export function StatusFilter({
-  basePath,
-  paramName = "status",
-  options,
-  active,
-}: StatusFilterProps) {
+export function StatusFilter({ options, active, hrefFor }: StatusFilterProps) {
   return (
     <div className="flex flex-wrap gap-2">
       {options.map((option) => {
         const isActive = option.value === active;
 
-        const href = option.value
-          ? `${basePath}?${paramName}=${option.value}`
-          : basePath;
-
         return (
           <Link
             key={option.value || "all"}
-            href={href}
+            href={hrefFor(option.value)}
+            scroll={false}
+            aria-current={isActive ? "true" : undefined}
             className={cn(
               "rounded-full border px-3 py-1 text-sm transition-colors",
               isActive

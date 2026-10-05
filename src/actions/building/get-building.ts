@@ -7,7 +7,7 @@ import { generateAccessCode } from "@/lib/generate-access-code";
 export async function getBuilding(id: string) {
   const session = await auth();
 
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.user.role !== "LANDLORD") {
     return null;
   }
 
@@ -22,6 +22,7 @@ export async function getBuilding(id: string) {
         select: {
           floors: { where: { deletedAt: null } },
           notices: true,
+          joinRequests: { where: { status: "PENDING" } },
         },
       },
     },
@@ -34,6 +35,40 @@ export async function getBuilding(id: string) {
   }
 
   return building;
+}
+
+// Flat counts by status for the building page header.
+export async function getBuildingOccupancy(buildingId: string) {
+  const session = await auth();
+
+  const empty = { total: 0, occupied: 0, vacant: 0, maintenance: 0 };
+
+  if (!session?.user?.id || session.user.role !== "LANDLORD") {
+    return empty;
+  }
+
+  const groups = await prisma.flat.groupBy({
+    by: ["status"],
+    where: {
+      deletedAt: null,
+      floor: {
+        buildingId,
+        deletedAt: null,
+        building: { ownerId: session.user.id },
+      },
+    },
+    _count: { _all: true },
+  });
+
+  const count = (status: string) =>
+    groups.find((group) => group.status === status)?._count._all ?? 0;
+
+  return {
+    total: groups.reduce((sum, group) => sum + group._count._all, 0),
+    occupied: count("OCCUPIED"),
+    vacant: count("VACANT"),
+    maintenance: count("MAINTENANCE"),
+  };
 }
 
 async function assignAccessCode(buildingId: string) {

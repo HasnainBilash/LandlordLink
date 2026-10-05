@@ -1,4 +1,5 @@
 import { CHART_COLORS } from "@/lib/chart-colors";
+import { formatMoney } from "@/lib/format";
 
 type BuildingPerformanceChartProps = {
   data: { id: string; name: string; value: number }[];
@@ -7,7 +8,7 @@ type BuildingPerformanceChartProps = {
 
 export function BuildingPerformanceChart({
   data,
-  valueLabel = (value) => `$${value.toFixed(2)}`,
+  valueLabel = formatMoney,
 }: BuildingPerformanceChartProps) {
   if (data.length === 0) {
     return <p className="text-muted-foreground">No buildings yet.</p>;

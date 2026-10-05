@@ -7,7 +7,7 @@ import { reconcileRentForLease } from "@/lib/reconcile-rent";
 export async function getRentsForLease(leaseId: string) {
   const session = await auth();
 
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.user.role !== "LANDLORD") {
     return [];
   }
 

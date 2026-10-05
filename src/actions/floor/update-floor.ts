@@ -1,23 +1,23 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 import { createFloorSchema } from "@/lib/validations/floor";
+import { logActivity } from "@/lib/log-activity";
+import { revalidateApp } from "@/lib/revalidate";
 
 import { ActionResult } from "@/types/action-result";
 
 export async function updateFloor(
   id: string,
-  buildingId: string,
   formData: FormData
 ): Promise<ActionResult> {
   const session = await auth();
 
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.user.role !== "LANDLORD") {
     return {
       success: false,
       message: "Unauthorized.",
@@ -35,22 +35,30 @@ export async function updateFloor(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Validation failed.",
+      message: "Please fix the highlighted fields.",
       errors: parsed.error.flatten().fieldErrors,
     };
   }
 
-  let result;
+  const floor = await prisma.floor.findFirst({
+    where: {
+      id,
+      deletedAt: null,
+      building: { ownerId: session.user.id, deletedAt: null },
+    },
+  });
+
+  if (!floor) {
+    return {
+      success: false,
+      message: "Floor not found.",
+      errors: {},
+    };
+  }
 
   try {
-    result = await prisma.floor.updateMany({
-      where: {
-        id,
-        deletedAt: null,
-        building: {
-          ownerId: session.user.id,
-        },
-      },
+    await prisma.floor.update({
+      where: { id },
       data: {
         floorNumber: parsed.data.floorNumber,
         name: parsed.data.name || null,
@@ -73,13 +81,20 @@ export async function updateFloor(
     throw error;
   }
 
-  if (result.count === 0) {
-    return {
-      success: false,
-      message: "Floor not found.",
-      errors: {},
-    };
-  }
+  await logActivity({
+    userId: session.user.id,
+    action: "UPDATE",
+    entity: "Floor",
+    entityId: id,
+    buildingId: floor.buildingId,
+    description: `Updated floor ${parsed.data.floorNumber}.`,
+  });
 
-  redirect(`/dashboard/buildings/${buildingId}/floors/${id}`);
+  revalidateApp();
+
+  return {
+    success: true,
+    message: "Floor saved.",
+    errors: {},
+  };
 }

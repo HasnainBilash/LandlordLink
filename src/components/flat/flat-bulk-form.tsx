@@ -1,23 +1,32 @@
 "use client";
 
+import { createFlatsBulk } from "@/actions/flat/create-flats-bulk";
+
 import { Button } from "@/components/ui/button";
+import { FieldError, FormError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSingleFlightAction } from "@/hooks/use-single-flight-action";
+import { NativeSelect } from "@/components/ui/native-select";
+import { useActionForm } from "@/hooks/use-action-form";
 
 type FlatBulkFormProps = {
-  action: (formData: FormData) => void | Promise<void>;
+  floorId: string;
+  onSuccess?: () => void;
 };
 
-export function FlatBulkForm({ action }: FlatBulkFormProps) {
-  const { run, isPending } = useSingleFlightAction(action);
+export function FlatBulkForm({ floorId, onSuccess }: FlatBulkFormProps) {
+  const { submit, isPending, errors, message } = useActionForm(
+    (formData) => createFlatsBulk(floorId, formData),
+    { onSuccess }
+  );
 
   return (
-    <form action={run} className="space-y-6">
-      <div className="grid gap-6 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="fromFlatNumber">From Flat Number</Label>
+    <form action={submit} className="space-y-4">
+      <FormError message={message} />
 
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="fromFlatNumber">From flat number</Label>
           <Input
             id="fromFlatNumber"
             name="fromFlatNumber"
@@ -25,90 +34,65 @@ export function FlatBulkForm({ action }: FlatBulkFormProps) {
             required
             placeholder="101"
           />
+          <FieldError errors={errors.fromFlatNumber} />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="toFlatNumber">To Flat Number</Label>
-
+        <div className="space-y-1.5">
+          <Label htmlFor="toFlatNumber">To flat number</Label>
           <Input
             id="toFlatNumber"
             name="toFlatNumber"
             type="number"
             required
-            placeholder="112"
+            placeholder="104"
           />
+          <FieldError errors={errors.toFlatNumber} />
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground">
-        This creates one flat for every number in the range, inclusive.
-        Flat numbers that already exist on this floor are skipped
-        automatically.
-      </p>
-
-      <div className="grid gap-6 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="bedrooms">Bedrooms</Label>
-
-          <Input
-            id="bedrooms"
-            name="bedrooms"
-            type="number"
-            required
-            placeholder="2"
-          />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="bulkBedrooms">Bedrooms</Label>
+          <Input id="bulkBedrooms" name="bedrooms" type="number" required placeholder="3" />
+          <FieldError errors={errors.bedrooms} />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="bathrooms">Bathrooms</Label>
-
-          <Input
-            id="bathrooms"
-            name="bathrooms"
-            type="number"
-            required
-            placeholder="1"
-          />
+        <div className="space-y-1.5">
+          <Label htmlFor="bulkBathrooms">Bathrooms</Label>
+          <Input id="bulkBathrooms" name="bathrooms" type="number" required placeholder="2" />
+          <FieldError errors={errors.bathrooms} />
         </div>
-      </div>
 
-      <div className="grid gap-6 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="monthlyRent">Monthly Rent</Label>
-
+        <div className="space-y-1.5">
+          <Label htmlFor="bulkRent">Rent / month (৳)</Label>
           <Input
-            id="monthlyRent"
+            id="bulkRent"
             name="monthlyRent"
             type="number"
+            inputMode="decimal"
             step="0.01"
             required
-            placeholder="1200.00"
+            placeholder="25000"
           />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="status">Status</Label>
-
-          <select
-            id="status"
-            name="status"
-            defaultValue="VACANT"
-            className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
-          >
-            <option value="VACANT">Vacant</option>
-            <option value="OCCUPIED">Occupied</option>
-            <option value="MAINTENANCE">Maintenance</option>
-          </select>
+          <FieldError errors={errors.monthlyRent} />
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground">
-        Bedrooms, bathrooms, rent, and status apply to every flat created in
-        this batch. Each flat can be adjusted individually afterward.
+      <div className="space-y-1.5">
+        <Label htmlFor="bulkStatus">Status</Label>
+        <NativeSelect id="bulkStatus" name="status" defaultValue="VACANT">
+          <option value="VACANT">Vacant</option>
+          <option value="MAINTENANCE">Maintenance</option>
+        </NativeSelect>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        Creates every number in the range with these details. Numbers that
+        already exist on this floor are skipped.
       </p>
 
       <Button type="submit" className="w-full" disabled={isPending}>
-        {isPending ? "Creating..." : "Create Flats"}
+        {isPending ? "Creating..." : "Create flats"}
       </Button>
     </form>
   );

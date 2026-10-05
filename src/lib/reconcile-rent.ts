@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { prisma } from "@/lib/prisma";
 import {
   getFirstBillableMonth,
@@ -79,3 +81,19 @@ export async function reconcileRentForLeases(leaseIds: string[]) {
 export async function reconcileRentForLease(leaseId: string) {
   await reconcileRentForLeases([leaseId]);
 }
+
+// Brings every active lease of one landlord up to date. Wrapped in
+// cache() so pages that need it from several places (e.g. Home shows
+// both "needs attention" and the report numbers) only run it once per
+// request.
+export const reconcileRentForOwner = cache(async (ownerId: string) => {
+  const leases = await prisma.lease.findMany({
+    where: {
+      status: "ACTIVE",
+      flat: { floor: { building: { ownerId } } },
+    },
+    select: { id: true },
+  });
+
+  await reconcileRentForLeases(leases.map((lease) => lease.id));
+});

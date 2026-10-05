@@ -2,60 +2,53 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { reconcileRentForLeases } from "@/lib/reconcile-rent";
+import { remainingBalance } from "@/lib/payment-status";
+import { reconcileRentForOwner } from "@/lib/reconcile-rent";
 
 export async function getOutstandingBalanceForBuilding(buildingId: string) {
   const session = await auth();
 
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.user.role !== "LANDLORD") {
     return { totalOutstanding: 0, flatsWithOutstandingRent: 0 };
   }
 
-  const activeLeases = await prisma.lease.findMany({
+  await reconcileRentForOwner(session.user.id);
+
+  const unpaidRent = await prisma.rent.findMany({
     where: {
-      status: "ACTIVE",
-      flat: {
-        floor: {
-          buildingId,
-          building: {
-            ownerId: session.user.id,
+      status: { in: ["PENDING", "OVERDUE", "PARTIAL"] },
+      lease: {
+        status: "ACTIVE",
+        flat: {
+          floor: {
+            buildingId,
+            building: { ownerId: session.user.id },
           },
         },
       },
     },
-    select: { id: true, flatId: true },
+    select: {
+      amount: true,
+      status: true,
+      payments: { select: { amount: true } },
+      lease: { select: { flatId: true } },
+    },
   });
 
-  if (activeLeases.length === 0) {
-    return { totalOutstanding: 0, flatsWithOutstandingRent: 0 };
+  let totalOutstanding = 0;
+  const flatsWithOutstandingRent = new Set<string>();
+
+  for (const rent of unpaidRent) {
+    const remaining = remainingBalance(rent);
+
+    if (remaining <= 0) continue;
+
+    totalOutstanding += remaining;
+    flatsWithOutstandingRent.add(rent.lease.flatId);
   }
 
-  await reconcileRentForLeases(activeLeases.map((lease) => lease.id));
-
-  const unpaidRent = await prisma.rent.findMany({
-    where: {
-      leaseId: { in: activeLeases.map((lease) => lease.id) },
-      status: { in: ["PENDING", "OVERDUE", "PARTIAL"] },
-    },
-    select: { amount: true, leaseId: true, payments: { select: { amount: true } } },
-  });
-
-  const totalOutstanding = unpaidRent.reduce((sum, rent) => {
-    const paidSoFar = rent.payments.reduce(
-      (paidSum, payment) => paidSum + Number(payment.amount),
-      0
-    );
-
-    return sum + (Number(rent.amount) - paidSoFar);
-  }, 0);
-
-  const flatIdByLease = new Map(
-    activeLeases.map((lease) => [lease.id, lease.flatId])
-  );
-
-  const flatsWithOutstandingRent = new Set(
-    unpaidRent.map((rent) => flatIdByLease.get(rent.leaseId))
-  ).size;
-
-  return { totalOutstanding, flatsWithOutstandingRent };
+  return {
+    totalOutstanding,
+    flatsWithOutstandingRent: flatsWithOutstandingRent.size,
+  };
 }

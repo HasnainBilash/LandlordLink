@@ -1,12 +1,12 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 import { tenantProfileSchema } from "@/lib/validations/tenant-profile";
+import { revalidateApp } from "@/lib/revalidate";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -34,7 +34,7 @@ export async function upsertTenantProfile(
   if (!parsed.success) {
     return {
       success: false,
-      message: "Validation failed.",
+      message: "Please fix the highlighted fields.",
       errors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -73,5 +73,11 @@ export async function upsertTenantProfile(
     throw error;
   }
 
-  redirect("/tenant/profile");
+  revalidateApp();
+
+  return {
+    success: true,
+    message: "Profile saved.",
+    errors: {},
+  };
 }

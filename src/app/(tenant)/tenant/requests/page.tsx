@@ -1,58 +1,81 @@
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
+
 import { getMyJoinRequests } from "@/actions/join-request/get-my-join-requests";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { MyRequestCard } from "@/components/join-request/my-request-card";
+import { PageHeader } from "@/components/layout/page-header";
+import { ButtonLink } from "@/components/ui/button-link";
+import { EmptyState } from "@/components/ui/empty-state";
+import { RequestStatusBadge } from "@/components/ui/status-badges";
 import { StatusFilter } from "@/components/ui/status-filter";
+import { formatDate, formatFlatNumber, formatFloor } from "@/lib/format";
 
 type PageProps = {
-  searchParams: Promise<{
-    status?: string;
-  }>;
+  searchParams: Promise<{ status?: string }>;
 };
 
-const FILTER_OPTIONS = [
-  { label: "All", value: "" },
+const FILTERS = [
+  { label: "All", value: "ALL" },
   { label: "Pending", value: "PENDING" },
   { label: "Approved", value: "APPROVED" },
   { label: "Rejected", value: "REJECTED" },
-  { label: "Ended", value: "ENDED" },
+  { label: "Lease ended", value: "ENDED" },
 ];
 
 export default async function MyRequestsPage({ searchParams }: PageProps) {
-  const { status } = await searchParams;
-  const activeStatus = status ?? "";
+  const { status = "ALL" } = await searchParams;
 
-  const requests = await getMyJoinRequests(activeStatus || undefined);
+  const requests = await getMyJoinRequests(status === "ALL" ? undefined : status);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">My Requests</h1>
-
-        <p className="text-muted-foreground">
-          Track the status of the flats you&apos;ve requested.
-        </p>
-      </div>
+    <>
+      <PageHeader
+        title="My requests"
+        description="Flats you've asked to rent, and what the landlord said."
+      />
 
       <StatusFilter
-        basePath="/tenant/requests"
-        options={FILTER_OPTIONS}
-        active={activeStatus}
+        options={FILTERS}
+        active={status}
+        hrefFor={(value) => `/tenant/requests?status=${value}`}
       />
 
       {requests.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            No requests match this filter.
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="No requests here"
+          description="Find a flat you like and send the landlord a request."
+          action={<ButtonLink href="/tenant/buildings">Find a flat</ButtonLink>}
+        />
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="divide-y rounded-xl border bg-card">
           {requests.map((request) => (
-            <MyRequestCard key={request.id} request={request} />
+            <li key={request.id}>
+              <Link
+                href={`/tenant/flats/${request.flatId}`}
+                className="flex items-center gap-3 p-4 transition-colors hover:bg-muted/50"
+              >
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium">
+                      Flat {formatFlatNumber(request.flat.flatNumber)} · {request.building.name}
+                    </p>
+                    <RequestStatusBadge status={request.status} />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {formatFloor(request.flat.floor)} · requested {formatDate(request.createdAt)}
+                  </p>
+                  {request.message && (
+                    <p className="truncate text-sm text-muted-foreground italic">
+                      &ldquo;{request.message}&rdquo;
+                    </p>
+                  )}
+                </div>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
-    </div>
+    </>
   );
 }

@@ -1,54 +1,49 @@
 "use client";
 
+import { createFloorsBulk } from "@/actions/floor/create-floors-bulk";
+
 import { Button } from "@/components/ui/button";
+import { FieldError, FormError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSingleFlightAction } from "@/hooks/use-single-flight-action";
+import { useActionForm } from "@/hooks/use-action-form";
 
 type FloorBulkFormProps = {
-  action: (formData: FormData) => void | Promise<void>;
+  buildingId: string;
+  onSuccess?: () => void;
 };
 
-export function FloorBulkForm({ action }: FloorBulkFormProps) {
-  const { run, isPending } = useSingleFlightAction(action);
+export function FloorBulkForm({ buildingId, onSuccess }: FloorBulkFormProps) {
+  const { submit, isPending, errors, message } = useActionForm(
+    (formData) => createFloorsBulk(buildingId, formData),
+    { onSuccess }
+  );
 
   return (
-    <form action={run} className="space-y-6">
-      <div className="grid gap-6 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="fromFloor">From Floor</Label>
+    <form action={submit} className="space-y-4">
+      <FormError message={message} />
 
-          <Input
-            id="fromFloor"
-            name="fromFloor"
-            type="number"
-            required
-            placeholder="1"
-          />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="fromFloor">From floor</Label>
+          <Input id="fromFloor" name="fromFloor" type="number" required placeholder="1" />
+          <FieldError errors={errors.fromFloor} />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="toFloor">To Floor</Label>
-
-          <Input
-            id="toFloor"
-            name="toFloor"
-            type="number"
-            required
-            placeholder="12"
-          />
+        <div className="space-y-1.5">
+          <Label htmlFor="toFloor">To floor</Label>
+          <Input id="toFloor" name="toFloor" type="number" required placeholder="10" />
+          <FieldError errors={errors.toFloor} />
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground">
-        This creates one floor for every number in the range, inclusive.
-        Floor numbers that already exist in this building are skipped
-        automatically. Each floor is named &quot;Floor N&quot; by default and
-        can be renamed individually afterward.
+      <p className="text-xs text-muted-foreground">
+        Creates every floor in the range. Floors that already exist are
+        skipped.
       </p>
 
       <Button type="submit" className="w-full" disabled={isPending}>
-        {isPending ? "Creating..." : "Create Floors"}
+        {isPending ? "Creating..." : "Create floors"}
       </Button>
     </form>
   );

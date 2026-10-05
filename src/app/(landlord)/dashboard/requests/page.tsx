@@ -1,66 +1,50 @@
 import { getJoinRequests } from "@/actions/join-request/get-join-requests";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { JoinRequestRow } from "@/components/join-request/join-request-row";
+import { RequestList } from "@/components/join-request/request-list";
+import { PageHeader } from "@/components/layout/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StatusFilter } from "@/components/ui/status-filter";
 
 type PageProps = {
-  searchParams: Promise<{
-    status?: string;
-  }>;
+  searchParams: Promise<{ status?: string }>;
 };
 
-const FILTER_OPTIONS = [
+const FILTERS = [
   { label: "Pending", value: "PENDING" },
   { label: "Approved", value: "APPROVED" },
   { label: "Rejected", value: "REJECTED" },
-  { label: "Ended", value: "ENDED" },
-  { label: "All", value: "" },
+  { label: "Lease ended", value: "ENDED" },
+  { label: "All", value: "ALL" },
 ];
 
-export default async function RequestsInboxPage({ searchParams }: PageProps) {
-  const { status } = await searchParams;
-  const activeStatus = status ?? "PENDING";
+export default async function RequestsPage({ searchParams }: PageProps) {
+  const { status = "PENDING" } = await searchParams;
 
-  const requests = (await getJoinRequests(activeStatus || undefined)).map(
-    (request) => ({
-      ...request,
-      flat: {
-        ...request.flat,
-        monthlyRent: Number(request.flat.monthlyRent),
-      },
-    })
-  );
+  const requests = await getJoinRequests({
+    status: status === "ALL" ? undefined : status,
+  });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Join Requests</h1>
-
-        <p className="text-muted-foreground">
-          Requests from tenants across all of your buildings.
-        </p>
-      </div>
+    <>
+      <PageHeader
+        title="Requests"
+        description="Tenants asking to rent a flat in one of your buildings."
+      />
 
       <StatusFilter
-        basePath="/dashboard/requests"
-        options={FILTER_OPTIONS}
-        active={activeStatus}
+        options={FILTERS}
+        active={status}
+        hrefFor={(value) => `/dashboard/requests?status=${value}`}
       />
 
       {requests.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            No requests match this filter.
-          </CardContent>
-        </Card>
+        <EmptyState
+          title={status === "PENDING" ? "No requests waiting" : "No requests here"}
+          description="Tenants send requests from “Find a flat” using a building's access code. You'll find the code on each building's page."
+        />
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {requests.map((request) => (
-            <JoinRequestRow key={request.id} request={request} />
-          ))}
-        </div>
+        <RequestList requests={requests} />
       )}
-    </div>
+    </>
   );
 }

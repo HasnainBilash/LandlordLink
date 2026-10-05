@@ -1,159 +1,202 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DeleteBuildingButton } from "@/components/building/delete-building-button";
-import { getBuilding } from "@/actions/building/get-building";
-import { getOutstandingBalanceForBuilding } from "@/actions/rent/get-outstanding-balance-for-building";
-import { getPendingJoinRequestsCount } from "@/actions/join-request/get-pending-join-requests-count";
+import { MapPin } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
-import { BackLink } from "@/components/ui/back-link";
-import { StatTile } from "@/components/ui/stat-tile";
+import { getActivityLogsForBuilding } from "@/actions/activity-log/get-activity-logs-for-building";
+import { getBuilding, getBuildingOccupancy } from "@/actions/building/get-building";
+import { getJoinRequests } from "@/actions/join-request/get-join-requests";
+import { getOutstandingBalanceForBuilding } from "@/actions/rent/get-outstanding-balance-for-building";
+
+import { ActivityLogList } from "@/components/activity-log/activity-log-list";
+import { BuildingActions } from "@/components/building/building-actions";
+import { BuildingUnits } from "@/components/building/building-units";
+import { RequestList } from "@/components/join-request/request-list";
+import { PageHeader } from "@/components/layout/page-header";
+import { BuildingNotices } from "@/components/notice/building-notices";
+import { CopyButton } from "@/components/ui/copy-button";
+import { CountBadge } from "@/components/ui/count-badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatCard } from "@/components/ui/stat-card";
+import { HiddenBadge } from "@/components/ui/status-badges";
+import { StatusFilter } from "@/components/ui/status-filter";
+import { TabNav } from "@/components/ui/tab-nav";
+import { formatMoney, pluralize } from "@/lib/format";
 
 type PageProps = {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string; status?: string }>;
 };
 
-export default async function BuildingDetailsPage({
-  params,
-}: PageProps) {
-  const { id } = await params;
+const TABS = ["units", "requests", "notices", "activity"] as const;
+type Tab = (typeof TABS)[number];
 
-  // All three queries check ownership themselves, so run them together.
-  const [
-    building,
-    { totalOutstanding, flatsWithOutstandingRent },
-    pendingRequests,
-  ] = await Promise.all([
+const REQUEST_FILTERS = [
+  { label: "Pending", value: "PENDING" },
+  { label: "Approved", value: "APPROVED" },
+  { label: "Rejected", value: "REJECTED" },
+  { label: "Lease ended", value: "ENDED" },
+  { label: "All", value: "ALL" },
+];
+
+export default async function BuildingPage({ params, searchParams }: PageProps) {
+  const { id } = await params;
+  const { tab: tabParam, status } = await searchParams;
+
+  const tab: Tab = TABS.find((value) => value === tabParam) ?? "units";
+
+  // All three check ownership themselves, so they can run together.
+  const [building, occupancy, balance] = await Promise.all([
     getBuilding(id),
+    getBuildingOccupancy(id),
     getOutstandingBalanceForBuilding(id),
-    getPendingJoinRequestsCount(id),
   ]);
 
   if (!building) {
     notFound();
   }
 
+  const basePath = `/dashboard/buildings/${id}`;
+  const pendingRequests = building._count.joinRequests;
+
   return (
-    <div className="space-y-6">
-      <div className="space-y-3">
-        <Breadcrumbs
-          items={[
-            { label: "Dashboard", href: "/dashboard" },
-            { label: "Buildings", href: "/dashboard/buildings" },
-            { label: building.name },
-          ]}
+    <>
+      <PageHeader
+        breadcrumbs={[
+          { label: "Buildings", href: "/dashboard/buildings" },
+          { label: building.name },
+        ]}
+        title={building.name}
+        description={
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="flex items-center gap-1">
+              <MapPin className="size-3.5" />
+              {building.address}, {building.city}
+            </span>
+            {building.status === "INACTIVE" && <HiddenBadge />}
+          </span>
+        }
+        actions={
+          <BuildingActions
+            building={{
+              id: building.id,
+              name: building.name,
+              address: building.address,
+              city: building.city,
+              postcode: building.postcode,
+              country: building.country,
+              description: building.description,
+              status: building.status,
+            }}
+          />
+        }
+      />
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard
+          label="Flats rented"
+          value={`${occupancy.occupied} / ${occupancy.total}`}
+          hint={`${pluralize(building._count.floors, "floor")} · ${occupancy.vacant} vacant`}
         />
-
-        <BackLink href="/dashboard/buildings" label="Buildings" />
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">
-            {building.name}
-          </h1>
-
-          <p className="text-muted-foreground">
-            {building.address}, {building.city}
+        <StatCard
+          label="Rent outstanding"
+          value={formatMoney(balance.totalOutstanding)}
+          hint={
+            balance.flatsWithOutstandingRent > 0
+              ? `Across ${pluralize(balance.flatsWithOutstandingRent, "flat")}`
+              : "Everyone is paid up"
+          }
+          tone={balance.totalOutstanding > 0 ? "danger" : "default"}
+        />
+        <StatCard
+          label="Pending requests"
+          value={pendingRequests}
+          href={`${basePath}?tab=requests`}
+        />
+        <div className="rounded-xl border bg-card p-4">
+          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Access code
+          </p>
+          <div className="mt-1 flex items-center gap-1">
+            <p className="font-mono text-xl font-semibold tracking-widest md:text-2xl">
+              {building.accessCode ?? "—"}
+            </p>
+            {building.accessCode && (
+              <CopyButton value={building.accessCode} label="Copy access code" />
+            )}
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Give it to tenants you&apos;ve spoken to
           </p>
         </div>
-
-        <div className="flex gap-3">
-          <Link href={`/dashboard/buildings/${building.id}/quick-setup`}>
-            <Button variant="outline">
-              Quick Setup
-            </Button>
-          </Link>
-
-          <Link href={`/dashboard/buildings/${building.id}/edit`}>
-            <Button variant="outline">
-              Edit Building
-            </Button>
-          </Link>
-
-          <DeleteBuildingButton
-            buildingId={building.id}
-          />
-        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Overview</CardTitle>
-        </CardHeader>
+      <TabNav
+        active={tab}
+        hrefFor={(value) => (value === "units" ? basePath : `${basePath}?tab=${value}`)}
+        tabs={[
+          { value: "units", label: "Floors & flats" },
+          {
+            value: "requests",
+            label: "Requests",
+            badge: <CountBadge count={pendingRequests} />,
+          },
+          { value: "notices", label: "Notices" },
+          { value: "activity", label: "Activity" },
+        ]}
+      />
 
-        <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <StatTile label="Status" value={building.status} />
+      {tab === "units" && <BuildingUnits buildingId={id} />}
 
-          <StatTile
-            label="Floors"
-            value={building._count.floors}
-            href={`/dashboard/buildings/${building.id}/floors`}
-          />
+      {tab === "requests" && (
+        <BuildingRequests
+          buildingId={id}
+          status={status ?? "PENDING"}
+          basePath={basePath}
+        />
+      )}
 
-          <StatTile
-            label="Requests"
-            value={pendingRequests > 0 ? `${pendingRequests} pending` : "View"}
-            href={`/dashboard/buildings/${building.id}/requests`}
-            destructive={pendingRequests > 0}
-          />
+      {tab === "notices" && <BuildingNotices buildingId={id} />}
 
-          <StatTile
-            label="Notices"
-            value={building._count.notices}
-            href={`/dashboard/buildings/${building.id}/notices`}
-          />
+      {tab === "activity" && <BuildingActivity buildingId={id} />}
+    </>
+  );
+}
 
-          <StatTile
-            label="Outstanding Rent"
-            value={
-              <>
-                ${totalOutstanding.toFixed(2)}
-                {flatsWithOutstandingRent > 0 &&
-                  ` (${flatsWithOutstandingRent} flat${
-                    flatsWithOutstandingRent === 1 ? "" : "s"
-                  })`}
-              </>
-            }
-            destructive={totalOutstanding > 0}
-          />
+async function BuildingRequests({
+  buildingId,
+  status,
+  basePath,
+}: {
+  buildingId: string;
+  status: string;
+  basePath: string;
+}) {
+  const requests = await getJoinRequests({
+    buildingId,
+    status: status === "ALL" ? undefined : status,
+  });
 
-          <StatTile
-            label="Activity"
-            value="View"
-            href={`/dashboard/buildings/${building.id}/activity`}
-          />
-        </CardContent>
-      </Card>
+  return (
+    <div className="space-y-4">
+      <StatusFilter
+        options={REQUEST_FILTERS}
+        active={status}
+        hrefFor={(value) => `${basePath}?tab=requests&status=${value}`}
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Access Code</CardTitle>
-        </CardHeader>
-
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Give this code to prospective tenants after they&apos;ve contacted you
-            directly. They&apos;ll need it to submit a request for any flat in
-            this building — it prevents strangers from mass-requesting
-            without ever speaking to you.
-          </p>
-
-          <p className="mt-3 font-mono text-2xl font-bold tracking-widest">
-            {building.accessCode ?? "—"}
-          </p>
-
-        </CardContent>
-      </Card>
+      {requests.length === 0 ? (
+        <EmptyState
+          title="No requests here"
+          description="Tenants request flats from “Find a flat” using this building's access code."
+        />
+      ) : (
+        <RequestList requests={requests} showBuilding={false} />
+      )}
     </div>
   );
+}
+
+async function BuildingActivity({ buildingId }: { buildingId: string }) {
+  const logs = await getActivityLogsForBuilding(buildingId);
+
+  return <ActivityLogList logs={logs} />;
 }

@@ -47,7 +47,10 @@ export async function getTenantFlatView(flatId: string) {
       include: {
         floor: {
           include: {
-            building: true,
+            // Public fields only — never the access code.
+            building: {
+              select: { id: true, name: true, address: true, city: true },
+            },
           },
         },
       },

@@ -3,13 +3,15 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/log-activity";
+import { revalidateApp } from "@/lib/revalidate";
+import { tombstoneFlatNumber } from "@/lib/tombstone";
 
 import { ActionResult } from "@/types/action-result";
 
 export async function deleteFlat(id: string): Promise<ActionResult> {
   const session = await auth();
 
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.user.role !== "LANDLORD") {
     return {
       success: false,
       message: "Unauthorized.",
@@ -29,6 +31,7 @@ export async function deleteFlat(id: string): Promise<ActionResult> {
     },
     include: {
       floor: true,
+      leases: { where: { status: "ACTIVE" }, select: { id: true }, take: 1 },
     },
   });
 
@@ -40,12 +43,29 @@ export async function deleteFlat(id: string): Promise<ActionResult> {
     };
   }
 
-  await prisma.flat.update({
-    where: { id },
-    data: {
-      deletedAt: new Date(),
-    },
-  });
+  if (flat.leases.length > 0) {
+    return {
+      success: false,
+      message: "Someone is living in this flat. End the lease before deleting it.",
+      errors: {},
+    };
+  }
+
+  // Soft delete (rent history stays) and free the flat number so a new
+  // flat can reuse it. Pending requests for it are turned down.
+  await prisma.$transaction([
+    prisma.joinRequest.updateMany({
+      where: { flatId: id, status: "PENDING" },
+      data: { status: "REJECTED" },
+    }),
+    prisma.flat.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        flatNumber: tombstoneFlatNumber(flat.flatNumber, flat.id),
+      },
+    }),
+  ]);
 
   await logActivity({
     userId: session.user.id,
@@ -56,9 +76,11 @@ export async function deleteFlat(id: string): Promise<ActionResult> {
     description: `Deleted flat ${flat.flatNumber}.`,
   });
 
+  revalidateApp();
+
   return {
     success: true,
-    message: "Flat deleted successfully.",
+    message: `Deleted flat ${flat.flatNumber}.`,
     errors: {},
   };
 }

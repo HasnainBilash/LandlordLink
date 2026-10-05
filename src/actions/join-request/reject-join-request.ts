@@ -1,10 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/log-activity";
+import { revalidateApp } from "@/lib/revalidate";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -53,7 +52,7 @@ export async function rejectJoinRequest(id: string): Promise<ActionResult> {
     description: "Rejected join request.",
   });
 
-  revalidatePath("/dashboard/requests");
+  revalidateApp();
 
   return {
     success: true,

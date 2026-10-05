@@ -1,13 +1,16 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 import { createUtilityBillSchema } from "@/lib/validations/utility-bill";
+import { formatMoney } from "@/lib/format";
 import { logActivity } from "@/lib/log-activity";
+import { revalidateApp } from "@/lib/revalidate";
+import { MONTH_NAMES } from "@/lib/rent";
+import { UTILITY_TYPE_LABELS } from "@/lib/utility-bill";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -68,7 +71,7 @@ export async function createUtilityBill(
 
     return {
       success: false,
-      message: Object.values(fieldErrors).flat()[0] ?? "Validation failed.",
+      message: "Please fix the highlighted fields.",
       errors: fieldErrors,
     };
   }
@@ -109,12 +112,10 @@ export async function createUtilityBill(
     entity: "UtilityBill",
     entityId: bill.id,
     buildingId: lease.flat.floor.buildingId,
-    description: `Added ${parsed.data.type} bill for ${parsed.data.month}/${parsed.data.year}.`,
+    description: `Added ${UTILITY_TYPE_LABELS[parsed.data.type].toLowerCase()} bill of ${formatMoney(parsed.data.amount)} for ${MONTH_NAMES[parsed.data.month - 1]} ${parsed.data.year}.`,
   });
 
-  revalidatePath(
-    `/dashboard/buildings/${lease.flat.floor.buildingId}/floors/${lease.flat.floorId}/flats/${lease.flatId}`
-  );
+  revalidateApp();
 
   return {
     success: true,

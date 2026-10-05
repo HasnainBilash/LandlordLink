@@ -1,74 +1,53 @@
-import Link from "next/link";
-
+import { auth } from "@/auth";
 import { getTenantProfile } from "@/actions/tenant-profile/get-tenant-profile";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
+import { TenantProfileForm } from "@/components/tenant/tenant-profile-form";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function TenantProfilePage() {
-  const profile = await getTenantProfile();
+  const [session, profile] = await Promise.all([auth(), getTenantProfile()]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">My Profile</h1>
+    <>
+      <PageHeader
+        title="Profile"
+        description="What landlords see when you request one of their flats."
+      />
 
-          <p className="text-muted-foreground">
-            Your tenant information on file.
-          </p>
-        </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>Account</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground">Name</p>
+              <p className="font-medium">{session?.user?.name}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Email</p>
+              <p className="font-medium break-all">{session?.user?.email}</p>
+            </div>
+          </CardContent>
+        </Card>
 
-        <Link href="/tenant/profile/edit">
-          <Button>
-            {profile ? "Edit Profile" : "Complete Profile"}
-          </Button>
-        </Link>
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Tenant details</CardTitle>
+            <CardDescription>Helps landlords decide on your request.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TenantProfileForm
+              defaultValues={{
+                occupation: profile?.occupation ?? "",
+                nationalId: profile?.nationalId ?? "",
+                emergencyContact: profile?.emergencyContact ?? "",
+              }}
+            />
+          </CardContent>
+        </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Details</CardTitle>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
-          {!profile ? (
-            <p className="text-muted-foreground">
-              You haven&apos;t filled in your profile yet.
-            </p>
-          ) : (
-            <>
-              <div>
-                <p className="text-sm text-muted-foreground">Occupation</p>
-                <p className="font-semibold">
-                  {profile.occupation || "—"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm text-muted-foreground">National ID</p>
-                <p className="font-semibold">
-                  {profile.nationalId || "—"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Emergency Contact
-                </p>
-                <p className="font-semibold">
-                  {profile.emergencyContact || "—"}
-                </p>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+    </>
   );
 }

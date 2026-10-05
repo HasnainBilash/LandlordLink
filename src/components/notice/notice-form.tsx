@@ -1,48 +1,55 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { FieldError, FormError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { useSingleFlightAction } from "@/hooks/use-single-flight-action";
+import { useActionForm } from "@/hooks/use-action-form";
+import { toDateInputValue } from "@/lib/format";
+import type { ActionResult } from "@/types/action-result";
 
 type NoticeFormProps = {
-  action: (formData: FormData) => void | Promise<void>;
-
+  action: (formData: FormData) => Promise<ActionResult | void>;
   submitText: string;
-
   defaultValues?: {
     title: string;
     content: string;
     audience: "ALL" | "TENANTS" | "LANDLORDS";
     expiresAt: Date | null;
   };
+  onSuccess?: () => void;
 };
 
 export function NoticeForm({
   action,
   submitText,
   defaultValues,
+  onSuccess,
 }: NoticeFormProps) {
-  const { run, isPending } = useSingleFlightAction(action);
+  const { submit, isPending, errors, message } = useActionForm(action, {
+    onSuccess,
+  });
 
   return (
-    <form action={run} className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="title">Title</Label>
+    <form action={submit} className="space-y-4">
+      <FormError message={message} />
 
+      <div className="space-y-1.5">
+        <Label htmlFor="title">Title</Label>
         <Input
           id="title"
           name="title"
           required
-          placeholder="Scheduled water shutoff on Friday"
+          placeholder="Water supply off on Friday"
           defaultValue={defaultValues?.title}
         />
+        <FieldError errors={errors.title} />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="content">Content</Label>
-
+      <div className="space-y-1.5">
+        <Label htmlFor="content">Message</Label>
         <Textarea
           id="content"
           name="content"
@@ -51,41 +58,36 @@ export function NoticeForm({
           placeholder="Details for tenants..."
           defaultValue={defaultValues?.content}
         />
+        <FieldError errors={errors.content} />
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="audience">Audience</Label>
-
-          <select
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="audience">Who can see it</Label>
+          <NativeSelect
             id="audience"
             name="audience"
             defaultValue={defaultValues?.audience ?? "ALL"}
-            className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
           >
             <option value="ALL">Everyone</option>
-            <option value="TENANTS">Tenants Only</option>
-            <option value="LANDLORDS">Landlords Only</option>
-          </select>
+            <option value="TENANTS">Tenants only</option>
+            <option value="LANDLORDS">Only me (private note)</option>
+          </NativeSelect>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="expiresAt">Expires On (optional)</Label>
-
+        <div className="space-y-1.5">
+          <Label htmlFor="expiresAt">Hide after (optional)</Label>
           <Input
             id="expiresAt"
             name="expiresAt"
             type="date"
             defaultValue={
               defaultValues?.expiresAt
-                ? new Date(defaultValues.expiresAt).toISOString().slice(0, 10)
+                ? toDateInputValue(defaultValues.expiresAt)
                 : ""
             }
           />
-
-          <p className="text-sm text-muted-foreground">
-            Leave blank for a notice that never expires on its own.
-          </p>
+          <FieldError errors={errors.expiresAt} />
         </div>
       </div>
 

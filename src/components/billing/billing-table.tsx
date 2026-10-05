@@ -2,18 +2,16 @@
 
 import { useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  PaymentStatusBadge,
+  type PaymentStatus,
+} from "@/components/ui/status-badges";
+import { formatDate, formatMoney } from "@/lib/format";
+
 import { RecordPaymentButton } from "./record-payment-button";
 
-const statusVariant = {
-  PENDING: "outline",
-  PARTIAL: "secondary",
-  PAID: "default",
-  OVERDUE: "destructive",
-} as const;
-
-const COLLAPSED_COUNT = 3;
+const COLLAPSED_COUNT = 4;
 
 export type BillingRow = {
   id: string;
@@ -21,7 +19,7 @@ export type BillingRow = {
   amount: number;
   paidTotal: number;
   dueDate: Date;
-  status: "PENDING" | "PARTIAL" | "PAID" | "OVERDUE";
+  status: PaymentStatus;
   target: { type: "RENT" | "UTILITY_BILL"; id: string };
 };
 
@@ -34,67 +32,64 @@ type BillingTableProps = {
 export function BillingTable({
   rows,
   canManage = false,
-  emptyMessage = "No billing periods yet.",
+  emptyMessage = "Nothing billed yet.",
 }: BillingTableProps) {
   const [expanded, setExpanded] = useState(false);
 
   if (rows.length === 0) {
-    return <p className="text-muted-foreground">{emptyMessage}</p>;
+    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
   }
 
   const visibleRows = expanded ? rows : rows.slice(0, COLLAPSED_COUNT);
   const hiddenCount = rows.length - visibleRows.length;
 
   return (
-    <div className="space-y-3">
+    <div className="divide-y">
       {visibleRows.map((row) => {
-        const remaining = row.amount - row.paidTotal;
+        const remaining = Math.max(row.amount - row.paidTotal, 0);
+        const isSettled = row.status === "PAID" || row.status === "WRITTEN_OFF";
 
         return (
           <div
             key={row.id}
-            className="space-y-2 border-b pb-3 last:border-0 last:pb-0"
+            className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
           >
-            <div className="flex items-center justify-between gap-3">
-              <p className="font-semibold">{row.label}</p>
-              <Badge variant={statusVariant[row.status]}>{row.status}</Badge>
+            <div className="min-w-0 space-y-0.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-medium">{row.label}</p>
+                <PaymentStatusBadge status={row.status} />
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                {formatMoney(row.amount)} · due {formatDate(row.dueDate)}
+                {!isSettled && row.paidTotal > 0 && (
+                  <> · {formatMoney(row.paidTotal)} paid, {formatMoney(remaining)} left</>
+                )}
+              </p>
             </div>
 
-            <p className="text-sm text-muted-foreground">
-              ${row.amount.toFixed(2)} · Due{" "}
-              {new Date(row.dueDate).toLocaleDateString()}
-              {row.paidTotal > 0 && row.status !== "PAID" && (
-                <> · ${row.paidTotal.toFixed(2)} paid so far</>
-              )}
-            </p>
-
-            {canManage && row.status !== "PAID" && (
-              <RecordPaymentButton target={row.target} remaining={remaining} />
+            {canManage && !isSettled && (
+              <RecordPaymentButton
+                target={row.target}
+                label={row.label}
+                remaining={remaining}
+              />
             )}
           </div>
         );
       })}
 
-      {hiddenCount > 0 && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full"
-          onClick={() => setExpanded(true)}
-        >
-          Show {hiddenCount} more
-        </Button>
-      )}
-
-      {expanded && rows.length > COLLAPSED_COUNT && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full"
-          onClick={() => setExpanded(false)}
-        >
-          Show less
-        </Button>
+      {(hiddenCount > 0 || expanded) && rows.length > COLLAPSED_COUNT && (
+        <div className="pt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? "Show less" : `Show ${hiddenCount} more`}
+          </Button>
+        </div>
       )}
     </div>
   );

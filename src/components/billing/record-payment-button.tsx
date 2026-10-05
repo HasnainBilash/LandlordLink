@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { toast } from "sonner";
-
 import { recordPayment } from "@/actions/payment/record-payment";
 
 import { Button } from "@/components/ui/button";
+import { FieldError, FormError } from "@/components/ui/field-error";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSingleFlightAction } from "@/hooks/use-single-flight-action";
+import { useActionForm } from "@/hooks/use-action-form";
+import { formatMoney } from "@/lib/format";
 
 type PaymentTarget =
   | { type: "RENT"; id: string }
@@ -16,110 +16,81 @@ type PaymentTarget =
 
 type RecordPaymentButtonProps = {
   target: PaymentTarget;
+  label: string;
   remaining: number;
 };
 
 export function RecordPaymentButton({
   target,
+  label,
   remaining,
 }: RecordPaymentButtonProps) {
-  const [isRecording, setIsRecording] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string[]>>({});
+  return (
+    <FormDialog
+      title="Record payment"
+      description={`${label} · ${formatMoney(remaining)} still due`}
+      trigger={
+        <Button size="sm" variant="outline">
+          Record payment
+        </Button>
+      }
+    >
+      {(close) => (
+        <RecordPaymentForm target={target} remaining={remaining} onDone={close} />
+      )}
+    </FormDialog>
+  );
+}
 
-  const { run, isPending } = useSingleFlightAction((formData: FormData) =>
-    recordPayment(target, formData)
+function RecordPaymentForm({
+  target,
+  remaining,
+  onDone,
+}: {
+  target: PaymentTarget;
+  remaining: number;
+  onDone: () => void;
+}) {
+  // The dialog closes on success, so the form can't be submitted twice.
+  const { submit, isPending, errors, message } = useActionForm(
+    (formData) => recordPayment(target, formData),
+    { onSuccess: onDone }
   );
 
-  async function handleSubmit(formData: FormData) {
-    setErrors({});
-
-    const result = await run(formData);
-
-    if (!result) return;
-
-    if (!result.success) {
-      setErrors(result.errors);
-
-      if (Object.keys(result.errors).length === 0) {
-        toast.error(result.message);
-      }
-
-      return;
-    }
-
-    // Close the form so another click can't record the payment again.
-    // The server action revalidates the page, so the updated balance
-    // arrives together with this result — no extra refresh needed.
-    setIsRecording(false);
-    toast.success(result.message);
-  }
-
-  if (isRecording) {
-    return (
-      <form
-        action={handleSubmit}
-        className="space-y-3 rounded-lg border p-3"
-      >
-        <div className="space-y-1">
-          <Label htmlFor={`amount-${target.id}`}>Amount</Label>
-
-          <Input
-            id={`amount-${target.id}`}
-            name="amount"
-            type="number"
-            step="0.01"
-            min="0.01"
-            max={remaining}
-            required
-            defaultValue={remaining.toFixed(2)}
-          />
-
-          {errors.amount && (
-            <p className="text-sm text-red-500">{errors.amount[0]}</p>
-          )}
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor={`transactionRef-${target.id}`}>
-            Transaction Reference (optional)
-          </Label>
-
-          <Input
-            id={`transactionRef-${target.id}`}
-            name="transactionRef"
-            placeholder="e.g. bank transfer ID"
-          />
-
-          {errors.transactionRef && (
-            <p className="text-sm text-red-500">{errors.transactionRef[0]}</p>
-          )}
-        </div>
-
-        <div className="flex gap-3">
-          <Button type="submit" size="sm" disabled={isPending}>
-            {isPending ? "Recording..." : "Confirm Payment"}
-          </Button>
-
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={isPending}
-            onClick={() => {
-              setIsRecording(false);
-              setErrors({});
-            }}
-          >
-            Cancel
-          </Button>
-        </div>
-      </form>
-    );
-  }
-
   return (
-    <Button size="sm" onClick={() => setIsRecording(true)}>
-      Record Payment
-    </Button>
+    <form action={submit} className="space-y-4">
+      <FormError message={message} />
+
+      <div className="space-y-1.5">
+        <Label htmlFor="amount">Amount (৳)</Label>
+        <Input
+          id="amount"
+          name="amount"
+          type="number"
+          inputMode="decimal"
+          step="0.01"
+          min="0.01"
+          max={remaining}
+          required
+          autoFocus
+          defaultValue={Math.round(remaining * 100) / 100}
+        />
+        <FieldError errors={errors.amount} />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="transactionRef">Reference (optional)</Label>
+        <Input
+          id="transactionRef"
+          name="transactionRef"
+          placeholder="e.g. bKash TrxID or receipt number"
+        />
+        <FieldError errors={errors.transactionRef} />
+      </div>
+
+      <Button type="submit" className="w-full" disabled={isPending}>
+        {isPending ? "Saving..." : "Save payment"}
+      </Button>
+    </form>
   );
 }

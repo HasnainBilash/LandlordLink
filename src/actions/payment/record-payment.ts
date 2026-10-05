@@ -1,12 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 import { recordPaymentSchema } from "@/lib/validations/payment";
+import { formatMoney } from "@/lib/format";
 import { logActivity } from "@/lib/log-activity";
+import { revalidateApp } from "@/lib/revalidate";
 
 import { ActionResult } from "@/types/action-result";
 
@@ -85,6 +85,14 @@ export async function recordPayment(
       return { kind: "not-found" } as const;
     }
 
+    const isWrittenOff =
+      ("status" in bill && bill.status === "WRITTEN_OFF") ||
+      ("writtenOffAt" in bill && bill.writtenOffAt !== null);
+
+    if (isWrittenOff) {
+      return { kind: "written-off" } as const;
+    }
+
     const paidSoFar = bill.payments.reduce(
       (sum, payment) => sum + Number(payment.amount),
       0
@@ -139,6 +147,14 @@ export async function recordPayment(
     };
   }
 
+  if (result.kind === "written-off") {
+    return {
+      success: false,
+      message: "This bill was written off, so payments can no longer be recorded on it.",
+      errors: {},
+    };
+  }
+
   if (result.kind === "duplicate") {
     return {
       success: false,
@@ -149,7 +165,7 @@ export async function recordPayment(
   }
 
   if (result.kind === "exceeds") {
-    const remaining = result.remaining.toFixed(2);
+    const remaining = formatMoney(result.remaining);
 
     return {
       success: false,
@@ -168,16 +184,14 @@ export async function recordPayment(
     entity: target.type === "RENT" ? "Rent" : "UtilityBill",
     entityId: target.id,
     buildingId: bill.lease.flat.floor.buildingId,
-    description: `Recorded payment of $${amount.toFixed(2)} (${payment.id}).`,
+    description: `Recorded payment of ${formatMoney(amount)} (${payment.id}).`,
   });
 
-  revalidatePath(
-    `/dashboard/buildings/${bill.lease.flat.floor.buildingId}/floors/${bill.lease.flat.floorId}/flats/${bill.lease.flatId}`
-  );
+  revalidateApp();
 
   return {
     success: true,
-    message: "Payment recorded.",
+    message: `Payment of ${formatMoney(amount)} recorded.`,
     errors: {},
   };
 }

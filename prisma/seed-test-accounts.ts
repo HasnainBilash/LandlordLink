@@ -17,7 +17,7 @@ import { generateAccessCode } from "../src/lib/generate-access-code";
 
 const prisma = new PrismaClient();
 
-const PASSWORD = "Test@1234";
+const PASSWORD = "11111111";
 
 const ACCOUNTS = {
   landlord: { email: "landlord@example.com", name: "Test Landlord", role: UserRole.LANDLORD },

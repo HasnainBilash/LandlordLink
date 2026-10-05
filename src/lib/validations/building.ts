@@ -39,6 +39,9 @@ export const createBuildingSchema = z.object({
     .max(1000, "Description is too long.")
     .optional()
     .or(z.literal("")),
+
+  // ACTIVE buildings appear in tenant search; INACTIVE ones are hidden.
+  status: z.enum(["ACTIVE", "INACTIVE"]).default("ACTIVE"),
 });
 
 export type CreateBuildingInput = z.infer<typeof createBuildingSchema>;
