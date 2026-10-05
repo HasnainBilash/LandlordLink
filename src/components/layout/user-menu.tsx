@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getInitials } from "@/lib/format";
 
 type UserMenuProps = {
   name: string;
@@ -21,20 +22,13 @@ type UserMenuProps = {
 };
 
 export function UserMenu({ name, email, role }: UserMenuProps) {
-  const initials = name
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         render={<Button variant="ghost" className="h-9 gap-2 px-2" />}
       >
         <span className="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-          {initials || "?"}
+          {getInitials(name)}
         </span>
         <span className="hidden max-w-40 truncate text-sm font-medium sm:inline">
           {name}

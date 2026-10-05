@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { RequestStatusBadge } from "@/components/ui/status-badges";
 import { formatDate } from "@/lib/format";
 
@@ -54,32 +55,38 @@ export function RequestHistoryList({
       {visibleRequests.map((request) => (
         <div
           key={request.id}
-          className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between"
+          className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between"
         >
-          <div className="min-w-0 space-y-0.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-medium">{request.tenant.user.name}</p>
-              <RequestStatusBadge status={request.status} />
-            </div>
+          <div className="flex min-w-0 gap-3">
+            <InitialsAvatar name={request.tenant.user.name} size="sm" />
 
-            <p className="text-sm text-muted-foreground">
-              {request.tenant.user.email} · {formatDate(request.createdAt)}
-            </p>
+            <div className="min-w-0 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-medium">{request.tenant.user.name}</p>
+                <RequestStatusBadge status={request.status} />
+              </div>
 
-            {request.message && (
-              <p className="text-sm text-muted-foreground italic">
-                &ldquo;{request.message}&rdquo;
+              <p className="truncate text-sm text-muted-foreground">
+                {request.tenant.user.email} · {formatDate(request.createdAt)}
               </p>
-            )}
+
+              {request.message && (
+                <p className="rounded-xl rounded-tl-sm bg-muted/70 px-3 py-2 text-sm text-muted-foreground">
+                  &ldquo;{request.message}&rdquo;
+                </p>
+              )}
+            </div>
           </div>
 
           {request.status === "PENDING" && (
-            <RequestActions
-              requestId={request.id}
-              tenantName={request.tenant.user.name}
-              flatLabel={flatLabel}
-              defaultMonthlyRent={defaultMonthlyRent}
-            />
+            <div className="pl-11 sm:shrink-0 sm:pl-0">
+              <RequestActions
+                requestId={request.id}
+                tenantName={request.tenant.user.name}
+                flatLabel={flatLabel}
+                defaultMonthlyRent={defaultMonthlyRent}
+              />
+            </div>
           )}
         </div>
       ))}

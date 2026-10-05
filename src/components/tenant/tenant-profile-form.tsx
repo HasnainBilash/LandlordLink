@@ -56,9 +56,7 @@ export function TenantProfileForm({ defaultValues }: TenantProfileFormProps) {
         <FieldError errors={errors.emergencyContact} />
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Everything here is optional. Landlords you send a request to can see it.
-      </p>
+      <p className="text-xs text-muted-foreground">Everything here is optional.</p>
 
       <Button type="submit" disabled={isPending}>
         {isPending ? "Saving..." : "Save profile"}

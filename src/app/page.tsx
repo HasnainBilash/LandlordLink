@@ -2,21 +2,14 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 
+import { LandingPage } from "@/components/landing/landing-page";
+
+// Public landing page; signed-in users go straight to their home.
 export default async function HomePage() {
   const session = await auth();
 
-  if (!session?.user) {
-    redirect("/login");
-  }
+  if (session?.user?.role === "LANDLORD") redirect("/dashboard");
+  if (session?.user?.role === "TENANT") redirect("/tenant");
 
-  switch (session.user.role) {
-    case "LANDLORD":
-      redirect("/dashboard");
-
-    case "TENANT":
-      redirect("/tenant");
-
-    default:
-      redirect("/login");
-  }
+  return <LandingPage />;
 }

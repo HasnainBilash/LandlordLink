@@ -62,21 +62,26 @@ Password for all: **`11111111`**
 The seed script prints the **access codes** for Test Tower A and B at the
 end. You need them to request a flat as a tenant.
 
-### Showcase account (interviews / demos)
+### Demo accounts (interviews / demos)
+
+Visitors reach these with the **Try as landlord / Try as tenant** buttons
+on the home page — no typing needed.
 
 | Email | Password | What it has |
 |---|---|---|
-| `farhan.ahmed@example.com` | `11111111` | 3 buildings, ~30 tenants, 6–8 months of rent and payment history, overdue and partial rent, pending and rejected requests, notices, activity log |
+| `farhan.ahmed@example.com` | `11111111` | Landlord: 3 buildings, 26 tenants (plus applicants and former tenants), months of rent and payment history, overdue and partial rent, pending and rejected requests, former tenants who still owe (Past dues), notices, activity log |
+| `nusrat.demo@example.com` | `11111111` | Tenant: flat 203 in Green Valley Apartments, this month half paid, building notices |
 
-Create or refresh it with:
+The live site rebuilds the demo **every night at 03:00** (Bangladesh time),
+with dates relative to that day. To rebuild it right now — e.g. just before
+an interview, if someone has been clicking around — either run:
 
 ```bash
 npm run db:seed-demo
 ```
 
-All dates are relative to the day you run it, so **re-run it the day
-before an interview** — otherwise months pass and every tenant starts
-showing as overdue. Re-running replaces only the demo accounts.
+or open Vercel → your project → **Settings → Cron Jobs** → **Run** next to
+`/api/cron/reset-demo`. Only demo data is replaced.
 
 ---
 
@@ -160,6 +165,23 @@ automatically), last month OVERDUE (the app updated it automatically),
    no "run the backfill script" message.
 5. **Badges:** the landlord Requests badge shows 1 (before you approve
    anything); `partial@example.com` sees a Notices badge.
+
+### Before deploying Phase 3 to Vercel
+
+1. **Make a secret for the nightly reset.** In a terminal run
+   `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+   and copy the long line it prints.
+2. **Add it to Vercel.** Vercel → your project → **Settings → Environment
+   Variables** → **Add New** → Key `CRON_SECRET`, Value: the line you
+   copied, Environment: **Production** → **Save**.
+3. **Create the demo tenant on the live database.** With `.env` pointing
+   at the live database, run `npm run db:seed-demo` once. (It rebuilds
+   the demo landlord's data and adds `nusrat.demo@example.com`; without
+   it "Try as tenant" can't sign in until the first nightly reset.)
+4. Push and wait for the deploy. Then Vercel → **Settings → Cron Jobs**
+   should list `/api/cron/reset-demo` (daily, `0 21 * * *` UTC =
+   03:00 in Bangladesh). Click **Run** once — it should finish without an
+   error.
 
 ### Before deploying Phase 1 to Vercel
 1. Vercel → your project → **Settings → Environment Variables** → add

@@ -11,8 +11,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <AuthLayout
-      title="Welcome Back"
-      description="Sign in to your account"
+      title="Welcome back"
+      description="Sign in to manage your buildings or your home."
+      showDemo
     >
       <AuthCard>
         <LoginForm callbackUrl={callbackUrl} />

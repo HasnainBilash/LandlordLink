@@ -52,6 +52,16 @@ export function RevenueTrendChart({ data }: RevenueTrendChartProps) {
 
   const last = points[points.length - 1];
 
+  // Put the latest value under its dot when the line comes down into it,
+  // so the label doesn't sit on top of the line.
+  const previous = points[points.length - 2];
+  const lineComesFromAbove = previous !== undefined && last !== undefined && previous.y < last.y;
+  const lastLabelY = last
+    ? lineComesFromAbove
+      ? Math.min(last.y + 18, PADDING_TOP + plotHeight - 4)
+      : last.y - 10
+    : 0;
+
   const gridlineCount = 3;
   const gridlines = Array.from({ length: gridlineCount + 1 }, (_, i) => {
     const y = PADDING_TOP + (plotHeight / gridlineCount) * i;
@@ -76,14 +86,14 @@ export function RevenueTrendChart({ data }: RevenueTrendChartProps) {
             x2={WIDTH - PADDING_RIGHT}
             y1={line.y}
             y2={line.y}
-            stroke={CHART_INK.gridline}
+            style={{ stroke: CHART_INK.gridline }}
             strokeWidth={1}
           />
           <text
             x={PADDING_LEFT}
             y={line.y - 4}
             fontSize={10}
-            fill={CHART_INK.muted}
+            style={{ fill: CHART_INK.muted }}
           >
             {formatMoney(Math.round(line.value))}
           </text>
@@ -92,15 +102,15 @@ export function RevenueTrendChart({ data }: RevenueTrendChartProps) {
 
       <path
         d={areaPath}
-        fill={CHART_COLORS.blue}
-        opacity={0.1}
+        style={{ fill: CHART_COLORS.brand }}
+        opacity={0.12}
         stroke="none"
       />
 
       <path
         d={linePath}
         fill="none"
-        stroke={CHART_COLORS.blue}
+        style={{ stroke: CHART_COLORS.brand }}
         strokeWidth={2}
         strokeLinejoin="round"
         strokeLinecap="round"
@@ -112,20 +122,18 @@ export function RevenueTrendChart({ data }: RevenueTrendChartProps) {
             cx={p.x}
             cy={p.y}
             r={4}
-            fill={CHART_COLORS.blue}
-            stroke={CHART_INK.surface}
+            style={{ fill: CHART_COLORS.brand, stroke: CHART_INK.surface }}
             strokeWidth={2}
           >
-            <title>
-              {p.label}: {formatMoney(p.value)}
-            </title>
+            {/* One string: React expects <title> to have a single text child. */}
+            <title>{`${p.label}: ${formatMoney(p.value)}`}</title>
           </circle>
 
           <text
             x={p.x}
             y={HEIGHT - 8}
             fontSize={10}
-            fill={CHART_INK.muted}
+            style={{ fill: CHART_INK.muted }}
             textAnchor={
               i === 0 ? "start" : i === points.length - 1 ? "end" : "middle"
             }
@@ -138,10 +146,10 @@ export function RevenueTrendChart({ data }: RevenueTrendChartProps) {
       {last && (
         <text
           x={last.x}
-          y={last.y - 10}
+          y={lastLabelY}
           fontSize={11}
           fontWeight={600}
-          fill={CHART_INK.primary}
+          style={{ fill: CHART_INK.primary }}
           textAnchor="end"
         >
           {formatMoney(last.value)}

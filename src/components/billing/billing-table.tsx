@@ -48,13 +48,14 @@ export function BillingTable({
       {visibleRows.map((row) => {
         const remaining = Math.max(row.amount - row.paidTotal, 0);
         const isSettled = row.status === "PAID" || row.status === "WRITTEN_OFF";
+        const paidPct = row.amount > 0 ? Math.min((row.paidTotal / row.amount) * 100, 100) : 0;
 
         return (
           <div
             key={row.id}
             className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
           >
-            <div className="min-w-0 space-y-0.5">
+            <div className="min-w-0 space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="font-medium">{row.label}</p>
                 <PaymentStatusBadge status={row.status} />
@@ -66,6 +67,15 @@ export function BillingTable({
                   <> · {formatMoney(row.paidTotal)} paid, {formatMoney(remaining)} left</>
                 )}
               </p>
+
+              {!isSettled && row.paidTotal > 0 && (
+                <div className="h-1.5 w-40 max-w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-amber-500"
+                    style={{ width: `${paidPct}%` }}
+                  />
+                </div>
+              )}
             </div>
 
             {canManage && !isSettled && (

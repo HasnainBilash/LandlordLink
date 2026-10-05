@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 
 export function AuthCard({
   children,
@@ -7,10 +6,8 @@ export function AuthCard({
   children: ReactNode;
 }) {
   return (
-    <Card className="shadow-xl">
-      <CardContent className="p-8">
-        {children}
-      </CardContent>
-    </Card>
+    <div className="rounded-3xl bg-card p-6 shadow-xl shadow-blue-950/[0.06] ring-1 ring-foreground/[0.07] sm:p-8 dark:shadow-black/30 dark:ring-white/[0.08]">
+      {children}
+    </div>
   );
 }

@@ -33,24 +33,21 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   timeZone: APP_TIME_ZONE,
 });
 
-const dateTimeFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
+// 5 Oct 2026
+export function formatDate(date: Date | string) {
+  return dateFormatter.format(new Date(date));
+}
+
+const timeFormatter = new Intl.DateTimeFormat("en-GB", {
   hour: "numeric",
   minute: "2-digit",
   hour12: true,
   timeZone: APP_TIME_ZONE,
 });
 
-// 5 Oct 2026
-export function formatDate(date: Date | string) {
-  return dateFormatter.format(new Date(date));
-}
-
-// 5 Oct 2026, 3:42 pm
-export function formatDateTime(date: Date | string) {
-  return dateTimeFormatter.format(new Date(date));
+// 3:42 pm
+export function formatTime(date: Date | string) {
+  return timeFormatter.format(new Date(date));
 }
 
 const dateInputFormatter = new Intl.DateTimeFormat("en-CA", {
@@ -86,4 +83,17 @@ export function compareFlatNumbers(a: string, b: string) {
 
 export function pluralize(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
+}
+
+// "Nusrat Jahan" → "NJ", for avatars.
+export function getInitials(name: string) {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return initials || "?";
 }

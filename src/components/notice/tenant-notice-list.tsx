@@ -3,8 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { Megaphone } from "lucide-react";
+
 import { markNoticesViewed } from "@/actions/notice/mark-notices-viewed";
 
+import { IconChip } from "@/components/ui/icon-chip";
 import { NewBadge } from "@/components/ui/status-badges";
 import { formatDate } from "@/lib/format";
 
@@ -37,27 +40,32 @@ export function TenantNoticeList({ notices }: TenantNoticeListProps) {
 
   if (notices.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+        <IconChip icon={Megaphone} tone="muted" />
         No notices from your building right now.
-      </p>
+      </div>
     );
   }
 
   return (
     <ul className="divide-y">
       {notices.map((notice) => (
-        <li key={notice.id} className="space-y-1 py-3 first:pt-0 last:pb-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="font-medium">{notice.title}</p>
-            {newIds.has(notice.id) && <NewBadge />}
+        <li key={notice.id} className="flex gap-3 py-4 first:pt-0 last:pb-0">
+          <IconChip icon={Megaphone} tone={newIds.has(notice.id) ? "primary" : "muted"} />
+
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-semibold">{notice.title}</p>
+              {newIds.has(notice.id) && <NewBadge />}
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              {notice.building.name} · {formatDate(notice.createdAt)}
+              {notice.expiresAt && ` · until ${formatDate(notice.expiresAt)}`}
+            </p>
+
+            <p className="text-sm whitespace-pre-wrap text-foreground/90">{notice.content}</p>
           </div>
-
-          <p className="text-xs text-muted-foreground">
-            {notice.building.name} · {formatDate(notice.createdAt)}
-            {notice.expiresAt && ` · until ${formatDate(notice.expiresAt)}`}
-          </p>
-
-          <p className="text-sm whitespace-pre-wrap">{notice.content}</p>
         </li>
       ))}
     </ul>

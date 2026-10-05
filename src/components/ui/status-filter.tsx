@@ -26,10 +26,10 @@ export function StatusFilter({ options, active, hrefFor }: StatusFilterProps) {
             scroll={false}
             aria-current={isActive ? "true" : undefined}
             className={cn(
-              "rounded-full border px-3 py-1 text-sm transition-colors",
+              "rounded-full px-3.5 py-1.5 text-sm font-medium transition",
               isActive
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-input text-muted-foreground hover:bg-muted"
+                ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+                : "bg-card text-muted-foreground ring-1 ring-foreground/[0.08] hover:text-foreground hover:ring-foreground/20 dark:ring-white/[0.1]"
             )}
           >
             {option.label}

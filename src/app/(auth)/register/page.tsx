@@ -5,8 +5,9 @@ import { RegisterForm } from "@/components/auth/register-form";
 export default function RegisterPage() {
   return (
     <AuthLayout
-      title="Create Account"
-      description="Join LandlordLink"
+      title="Create your account"
+      description="Free to use. Set up your first building in minutes."
+      showDemo
     >
       <AuthCard>
         <RegisterForm />

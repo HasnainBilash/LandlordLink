@@ -63,6 +63,7 @@ const nextAuth = NextAuth({
         action: "LOGIN",
         entity: "User",
         entityId: user.id,
+        description: "Signed in.",
       });
     },
   },

@@ -148,17 +148,28 @@ Start development server
 npm run dev
 ```
 
-### Demo Data (optional)
+### Public demo
 
-To populate the database with a demo landlord, buildings, tenants, and
-billing history for exploring the app:
+The landing page has **Try as landlord** and **Try as tenant** buttons that
+sign visitors in to two shared demo accounts (password `11111111`):
+
+| Account | Email |
+|---|---|
+| Demo landlord | `farhan.ahmed@example.com` — 3 buildings, 26 tenants, months of rent history, requests, past dues |
+| Demo tenant | `nusrat.demo@example.com` — lives in Green Valley Apartments, flat 203 |
+
+Create or rebuild the demo data with:
 
 ```bash
-npx tsx prisma/seed-demo-landlord.ts
+npm run db:seed-demo
 ```
 
-It only touches its own demo accounts: re-running it replaces them with
-fresh data dated from today (handy before a demo). Nothing else is changed.
+On Vercel the demo also rebuilds itself every night at 03:00 Bangladesh
+time (`crons` in `vercel.json` → `/api/cron/reset-demo`), so visitors'
+changes disappear and dates stay current. Only demo data is touched: the
+demo landlord's buildings, the two demo accounts (which keep their IDs, so
+signed-in visitors stay signed in) and the generated tenants on
+`@demo.example.com`.
 
 ---
 
@@ -172,6 +183,8 @@ DATABASE_URL=
 # Neon direct connection (same, without "-pooler") — used by prisma migrate
 DIRECT_URL=
 AUTH_SECRET=
+# Any long random string; Vercel Cron sends it to /api/cron/reset-demo
+CRON_SECRET=
 ```
 
 ### Neon performance notes
@@ -190,9 +203,14 @@ Apply migrations with `npm run db:migrate`.
 
 The Vercel project's build command is `prisma migrate deploy && next build`,
 so every deploy applies pending migrations first. That is why Vercel needs
-**all three** variables — `DATABASE_URL`, `DIRECT_URL` and `AUTH_SECRET` —
-for Production and Preview. Without `DIRECT_URL` the build fails with
+`DATABASE_URL`, `DIRECT_URL` and `AUTH_SECRET` for Production and
+Preview. Without `DIRECT_URL` the build fails with
 `Environment variable not found: DIRECT_URL`.
+
+It also needs `CRON_SECRET` (Production) for the nightly demo reset:
+Vercel sends it with every cron call, and the endpoint refuses calls
+without it. You can run the reset by hand under **Settings → Cron Jobs →
+Run**.
 
 `vercel.json` pins the app's functions to Singapore (`sin1`), next to the
 Neon database.

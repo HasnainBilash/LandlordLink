@@ -1,3 +1,5 @@
+import { Inbox } from "lucide-react";
+
 import { getJoinRequests } from "@/actions/join-request/get-join-requests";
 
 import { RequestList } from "@/components/join-request/request-list";
@@ -39,6 +41,7 @@ export default async function RequestsPage({ searchParams }: PageProps) {
 
       {requests.length === 0 ? (
         <EmptyState
+          icon={Inbox}
           title={status === "PENDING" ? "No requests waiting" : "No requests here"}
           description="Tenants send requests from “Find a flat” using a building's access code. You'll find the code on each building's page."
         />

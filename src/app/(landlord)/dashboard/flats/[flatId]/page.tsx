@@ -1,4 +1,13 @@
 import { notFound } from "next/navigation";
+import {
+  AlertTriangle,
+  Banknote,
+  CalendarDays,
+  CheckCircle2,
+  DoorOpen,
+  PiggyBank,
+  Wrench,
+} from "lucide-react";
 
 import { getFlat } from "@/actions/flat/get-flat";
 import { getRentsForLease } from "@/actions/rent/get-rents-for-lease";
@@ -17,12 +26,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { IconChip } from "@/components/ui/icon-chip";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { StatCard } from "@/components/ui/stat-card";
 import { FlatStatusBadge } from "@/components/ui/status-badges";
+import { surface } from "@/components/ui/surface";
 import { computePaymentStatus, sumPayments } from "@/lib/payment-status";
 import { formatDate, formatFloor, formatMoney } from "@/lib/format";
 import { MONTH_NAMES } from "@/lib/rent";
 import { UTILITY_TYPE_LABELS } from "@/lib/utility-bill";
+import { cn } from "@/lib/utils";
 
 type PageProps = {
   params: Promise<{ flatId: string }>;
@@ -124,21 +137,25 @@ export default async function FlatPage({ params }: PageProps) {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
+          icon={Banknote}
           label={lease ? "Rent" : "Listed rent"}
           value={formatMoney(lease ? lease.monthlyRent : flat.monthlyRent)}
           hint="per month"
         />
         <StatCard
+          icon={balanceDue > 0 ? AlertTriangle : CheckCircle2}
           label="Balance due"
           value={formatMoney(balanceDue)}
-          hint={lease ? "Rent and bills unpaid" : "No current tenant"}
-          tone={balanceDue > 0 ? "danger" : "default"}
+          hint={lease ? (balanceDue > 0 ? "Rent and bills unpaid" : "All paid up") : "No current tenant"}
+          tone={balanceDue > 0 ? "danger" : lease ? "success" : "default"}
         />
         <StatCard
+          icon={CalendarDays}
           label="Lease since"
           value={lease ? formatDate(lease.startDate) : "—"}
         />
         <StatCard
+          icon={PiggyBank}
           label="Deposit"
           value={lease?.deposit ? formatMoney(lease.deposit) : "—"}
         />
@@ -158,25 +175,43 @@ export default async function FlatPage({ params }: PageProps) {
             )}
           </CardHeader>
 
-          <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Detail label="Name" value={tenant.user.name} />
-            <Detail label="Email" value={tenant.user.email} />
-            <Detail label="Occupation" value={tenant.occupation} />
-            <Detail label="Emergency contact" value={tenant.emergencyContact} />
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-3">
+              <InitialsAvatar name={tenant.user.name} size="lg" />
+              <div className="min-w-0">
+                <p className="truncate text-base font-semibold">{tenant.user.name}</p>
+                <p className="truncate text-sm text-muted-foreground">{tenant.user.email}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 border-t pt-4 sm:grid-cols-2">
+              <Detail label="Occupation" value={tenant.occupation} />
+              <Detail label="Emergency contact" value={tenant.emergencyContact} />
+            </div>
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="text-sm text-muted-foreground">
-            {flat.status === "MAINTENANCE"
-              ? "This flat is under maintenance. Set it back to Vacant (Edit) when it's ready to rent."
-              : "No one lives here right now. Tenants can request this flat from “Find a flat” using the building's access code."}
-          </CardContent>
-        </Card>
+        <div className={cn(surface, "flex items-start gap-4 p-5")}>
+          <IconChip
+            icon={flat.status === "MAINTENANCE" ? Wrench : DoorOpen}
+            tone={flat.status === "MAINTENANCE" ? "warning" : "info"}
+            size="lg"
+          />
+          <div className="space-y-1">
+            <p className="font-semibold">
+              {flat.status === "MAINTENANCE" ? "Under maintenance" : "No one lives here right now"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {flat.status === "MAINTENANCE"
+                ? "Set it back to Vacant (Edit) when it's ready to rent."
+                : "Tenants can request this flat from “Find a flat” using the building's access code."}
+            </p>
+          </div>
+        </div>
       )}
 
       {lease && (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Rent</CardTitle>

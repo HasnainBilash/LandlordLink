@@ -1,4 +1,13 @@
 import Link from "next/link";
+import {
+  AlertTriangle,
+  BarChart3,
+  CheckCircle2,
+  History,
+  PieChart,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 
 import { getActivityLogsForLandlord } from "@/actions/activity-log/get-activity-logs-for-landlord";
 import { getPortfolioReport } from "@/actions/report/get-portfolio-report";
@@ -20,9 +29,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { IconChip } from "@/components/ui/icon-chip";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { StatCard } from "@/components/ui/stat-card";
+import { surface } from "@/components/ui/surface";
 import { TabNav } from "@/components/ui/tab-nav";
 import { formatDate, formatFlatNumber, formatFloor, formatMoney, pluralize } from "@/lib/format";
+import { cn } from "@/lib/utils";
+
+// Shared styles for the report tables.
+const TH = "py-2.5 pr-4 text-xs font-medium tracking-wide uppercase";
+const TD = "py-3 pr-4 tabular-nums";
+const ROW = "border-b transition-colors last:border-0 hover:bg-muted/40";
 
 type PageProps = {
   searchParams: Promise<{ tab?: string }>;
@@ -67,6 +85,7 @@ async function Overview() {
   if (!report || report.buildings.length === 0) {
     return (
       <EmptyState
+        icon={BarChart3}
         title="Nothing to report yet"
         description="Add a building and some tenants, and their rent and occupancy will show up here."
       />
@@ -84,17 +103,24 @@ async function Overview() {
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
+          icon={PieChart}
           label="Occupancy"
           value={`${occupancyRate}%`}
           hint={`${report.occupancy.occupied} of ${pluralize(report.occupancy.total, "flat")} rented`}
         />
         <StatCard
+          icon={TrendingUp}
           label="Collected this month"
           value={formatMoney(report.revenue.thisMonth)}
           tone="success"
         />
-        <StatCard label="Collected all time" value={formatMoney(report.revenue.allTime)} />
         <StatCard
+          icon={Wallet}
+          label="Collected all time"
+          value={formatMoney(report.revenue.allTime)}
+        />
+        <StatCard
+          icon={AlertTriangle}
           label="Outstanding"
           value={formatMoney(outstanding)}
           hint={`${formatMoney(report.outstanding.rent)} rent · ${formatMoney(report.outstanding.utilityBills)} bills`}
@@ -102,7 +128,7 @@ async function Overview() {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Money collected per month</CardTitle>
@@ -140,29 +166,43 @@ async function Overview() {
             <table className="w-full min-w-[28rem] text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-2 pr-4 font-medium">Month</th>
-                  <th className="py-2 pr-4 text-right font-medium">Rent due</th>
-                  <th className="py-2 pr-4 text-right font-medium">Collected</th>
-                  <th className="py-2 text-right font-medium">Rate</th>
+                  <th className={TH}>Month</th>
+                  <th className={cn(TH, "text-right")}>Rent due</th>
+                  <th className={cn(TH, "text-right")}>Collected</th>
+                  <th className={cn(TH, "pr-0 text-right")}>Rate</th>
                 </tr>
               </thead>
               <tbody>
-                {report.monthly.map((month) => (
-                  <tr key={month.key} className="border-b last:border-0">
-                    <td className="py-2 pr-4">{month.label}</td>
-                    <td className="py-2 pr-4 text-right tabular-nums">
-                      {formatMoney(month.due)}
-                    </td>
-                    <td className="py-2 pr-4 text-right tabular-nums">
-                      {formatMoney(month.collected)}
-                    </td>
-                    <td className="py-2 text-right tabular-nums">
-                      {month.due > 0
-                        ? `${Math.round((month.collected / month.due) * 100)}%`
-                        : "—"}
-                    </td>
-                  </tr>
-                ))}
+                {report.monthly.map((month) => {
+                  const rate =
+                    month.due > 0 ? Math.round((month.collected / month.due) * 100) : null;
+
+                  return (
+                    <tr key={month.key} className={ROW}>
+                      <td className={cn(TD, "font-medium")}>{month.label}</td>
+                      <td className={cn(TD, "text-right")}>{formatMoney(month.due)}</td>
+                      <td className={cn(TD, "text-right")}>{formatMoney(month.collected)}</td>
+                      <td className={cn(TD, "pr-0 text-right")}>
+                        {rate === null ? (
+                          "—"
+                        ) : (
+                          <span
+                            className={cn(
+                              "rounded-full px-2 py-0.5 text-xs font-semibold",
+                              rate >= 90
+                                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                : rate >= 60
+                                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                                  : "bg-red-500/10 text-red-700 dark:text-red-300"
+                            )}
+                          >
+                            {rate}%
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -183,11 +223,11 @@ async function Overview() {
             <table className="w-full min-w-[32rem] text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-2 pr-4 font-medium">Building</th>
-                  <th className="py-2 pr-4 text-right font-medium">Rented</th>
-                  <th className="py-2 pr-4 text-right font-medium">Occupancy</th>
-                  <th className="py-2 pr-4 text-right font-medium">Collected</th>
-                  <th className="py-2 text-right font-medium">Outstanding</th>
+                  <th className={TH}>Building</th>
+                  <th className={cn(TH, "text-right")}>Rented</th>
+                  <th className={cn(TH, "text-right")}>Occupancy</th>
+                  <th className={cn(TH, "text-right")}>Collected</th>
+                  <th className={cn(TH, "pr-0 text-right")}>Outstanding</th>
                 </tr>
               </thead>
               <tbody>
@@ -196,28 +236,28 @@ async function Overview() {
                     building.outstandingRent + building.outstandingUtilityBills;
 
                   return (
-                    <tr key={building.id} className="border-b last:border-0">
-                      <td className="py-2 pr-4">
+                    <tr key={building.id} className={ROW}>
+                      <td className={TD}>
                         <Link
                           href={`/dashboard/buildings/${building.id}`}
-                          className="font-medium hover:underline"
+                          className="font-medium underline-offset-4 hover:text-primary hover:underline"
                         >
                           {building.name}
                         </Link>
                       </td>
-                      <td className="py-2 pr-4 text-right tabular-nums">
+                      <td className={cn(TD, "text-right")}>
                         {building.occupied} / {building.totalFlats}
                       </td>
-                      <td className="py-2 pr-4 text-right tabular-nums">
+                      <td className={cn(TD, "text-right")}>
                         {Math.round(building.occupancyRate)}%
                       </td>
-                      <td className="py-2 pr-4 text-right tabular-nums">
-                        {formatMoney(building.revenue)}
-                      </td>
+                      <td className={cn(TD, "text-right")}>{formatMoney(building.revenue)}</td>
                       <td
-                        className={`py-2 text-right tabular-nums ${
-                          buildingOutstanding > 0 ? "text-destructive" : ""
-                        }`}
+                        className={cn(
+                          TD,
+                          "pr-0 text-right font-medium",
+                          buildingOutstanding > 0 && "text-red-600 dark:text-red-400"
+                        )}
                       >
                         {formatMoney(buildingOutstanding)}
                       </td>
@@ -231,7 +271,7 @@ async function Overview() {
       </Card>
 
       {report.buildings.length > 1 && (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Collected by building</CardTitle>
@@ -274,6 +314,7 @@ async function PastDues() {
   if (pastDues.length === 0) {
     return (
       <EmptyState
+        icon={CheckCircle2}
         title="No past dues"
         description="When a tenant moves out still owing rent or bills, it shows up here so you can record a late payment or write it off."
       />
@@ -284,16 +325,30 @@ async function PastDues() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        {pluralize(pastDues.length, "former tenant")} owe{" "}
-        <span className="font-semibold text-destructive">{formatMoney(total)}</span>{" "}
-        in total.
-      </p>
+      <div className={cn(surface, "flex flex-wrap items-center gap-4 p-5")}>
+        <IconChip icon={History} tone="warning" size="lg" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm text-muted-foreground">
+            {pluralize(pastDues.length, "former tenant")}{" "}
+            {pastDues.length === 1 ? "still owes" : "still owe"} you
+          </p>
+          <p className="text-2xl font-semibold tracking-tight text-red-600 tabular-nums dark:text-red-400">
+            {formatMoney(total)}
+          </p>
+        </div>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          Record late payments as they come in, or write off what you won&apos;t
+          collect.
+        </p>
+      </div>
 
       {pastDues.map((lease) => (
         <Card key={lease.leaseId}>
           <CardHeader>
-            <CardTitle>{lease.tenantName}</CardTitle>
+            <CardTitle className="flex items-center gap-2.5">
+              <InitialsAvatar name={lease.tenantName} size="sm" />
+              {lease.tenantName}
+            </CardTitle>
             <CardDescription>
               {lease.flat.floor.building.name} · {formatFloor(lease.flat.floor)} · Flat{" "}
               {formatFlatNumber(lease.flat.flatNumber)} · lived there{" "}
@@ -301,7 +356,7 @@ async function PastDues() {
               {lease.endDate ? formatDate(lease.endDate) : "?"}
             </CardDescription>
             <CardAction className="flex items-center gap-2">
-              <span className="font-semibold text-destructive">
+              <span className="rounded-full bg-red-500/10 px-2.5 py-1 text-sm font-semibold text-red-700 tabular-nums dark:text-red-300">
                 {formatMoney(lease.total)}
               </span>
               <WriteOffButton

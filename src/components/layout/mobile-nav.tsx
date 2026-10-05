@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Menu } from "lucide-react";
 
+import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -39,7 +40,12 @@ export function MobileNav({ items }: MobileNavProps) {
 
       <SheetContent side="left" className="w-72 p-0">
         <SheetHeader className="border-b p-4">
-          <SheetTitle>LandlordLink</SheetTitle>
+          <SheetTitle className="flex items-center gap-2.5">
+            <LogoMark />
+            <span>
+              Landlord<span className="text-primary">Link</span>
+            </span>
+          </SheetTitle>
         </SheetHeader>
 
         <SidebarNav items={items} onNavigate={() => setOpen(false)} />

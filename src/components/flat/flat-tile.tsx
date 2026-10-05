@@ -26,8 +26,8 @@ export function FlatTile({ flat }: FlatTileProps) {
     <Link
       href={`/dashboard/flats/${flat.id}`}
       className={cn(
-        "flex flex-col gap-2 rounded-lg border bg-background p-3 transition-colors hover:border-ring",
-        flat.isOverdue && "border-red-300 dark:border-red-500/40"
+        "flex flex-col gap-2 rounded-xl border bg-background p-3.5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm",
+        flat.isOverdue && "border-red-300 bg-red-50/40 dark:border-red-500/40 dark:bg-red-500/[0.06]"
       )}
     >
       <div className="flex items-center justify-between gap-2">
@@ -40,7 +40,7 @@ export function FlatTile({ flat }: FlatTileProps) {
       </p>
 
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-medium">
+        <p className="text-sm font-medium tabular-nums">
           {formatMoney(flat.rent)}
           <span className="font-normal text-muted-foreground">/mo</span>
         </p>

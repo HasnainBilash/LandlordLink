@@ -1,9 +1,12 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
-import { Building2 } from "lucide-react";
 
 import { auth } from "@/auth";
+import { isDemoEmail } from "@/lib/demo";
 
+import { Logo } from "@/components/brand/logo";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+
+import { DemoBanner } from "./demo-banner";
 import { MobileNav } from "./mobile-nav";
 import type { NavItem } from "./nav-types";
 import { SidebarNav } from "./sidebar-nav";
@@ -15,41 +18,45 @@ type AppShellProps = {
   children: ReactNode;
 };
 
-function Brand({ href }: { href: string }) {
-  return (
-    <Link href={href} className="flex items-center gap-2 font-semibold">
-      <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <Building2 className="size-4" />
-      </span>
-      LandlordLink
-    </Link>
-  );
-}
-
 // Shared layout for landlords and tenants: sidebar on desktop, a slide-out
-// menu on phones, and the account menu in the header.
+// menu on phones, and the theme switch + account menu in the header.
 export async function AppShell({ nav, homeHref, children }: AppShellProps) {
   const session = await auth();
+  const isDemo = isDemoEmail(session?.user?.email);
 
   return (
-    <div className="min-h-screen bg-muted/30 md:flex">
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r bg-background md:flex">
-        <div className="flex h-14 items-center border-b px-5">
-          <Brand href={homeHref} />
+    <div className="min-h-screen bg-background md:flex">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
+        <div className="flex h-16 items-center px-5">
+          <Logo href={homeHref} />
         </div>
 
         <SidebarNav items={nav} />
+
+        <div className="mt-auto p-4">
+          <div className="rounded-2xl bg-accent/60 p-4 text-xs text-accent-foreground">
+            <p className="font-semibold">Tip</p>
+            <p className="mt-1 opacity-80">
+              {homeHref === "/dashboard"
+                ? "Share a building's access code with tenants so they can request a flat."
+                : "Ask your landlord for the building's access code to request a flat."}
+            </p>
+          </div>
+        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur md:px-8">
+        {isDemo && <DemoBanner />}
+
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border/70 bg-background/80 px-4 backdrop-blur-md md:px-8">
           <MobileNav items={nav} />
 
           <div className="md:hidden">
-            <Brand href={homeHref} />
+            <Logo href={homeHref} />
           </div>
 
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1">
+            <ThemeToggle />
             <UserMenu
               name={session?.user?.name ?? "User"}
               email={session?.user?.email ?? ""}

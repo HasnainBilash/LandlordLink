@@ -1,5 +1,12 @@
 import { notFound } from "next/navigation";
-import { MapPin } from "lucide-react";
+import {
+  AlertTriangle,
+  Banknote,
+  BedDouble,
+  CalendarDays,
+  CheckCircle2,
+  MapPin,
+} from "lucide-react";
 
 import { getTenantFlatView } from "@/actions/join-request/get-tenant-flat-view";
 
@@ -82,12 +89,14 @@ export default async function TenantFlatPage({ params }: PageProps) {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
+          icon={Banknote}
           label={activeLease ? "Your rent" : "Listed rent"}
           value={formatMoney(activeLease ? activeLease.monthlyRent : flat.monthlyRent)}
           hint="per month"
         />
         {activeLease && (
           <StatCard
+            icon={owed > 0 ? AlertTriangle : CheckCircle2}
             label="You owe"
             value={owed > 0 ? formatMoney(owed) : "Nothing"}
             hint={owed > 0 ? "Pay your landlord and they'll record it" : "All paid up"}
@@ -95,16 +104,21 @@ export default async function TenantFlatPage({ params }: PageProps) {
           />
         )}
         {activeLease && (
-          <StatCard label="Lease since" value={formatDate(activeLease.startDate)} />
+          <StatCard
+            icon={CalendarDays}
+            label="Lease since"
+            value={formatDate(activeLease.startDate)}
+          />
         )}
         <StatCard
+          icon={BedDouble}
           label="Size"
           value={`${flat.bedrooms} bed · ${flat.bathrooms} bath`}
         />
       </div>
 
       {activeLease && (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Rent</CardTitle>

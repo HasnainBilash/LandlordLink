@@ -4,8 +4,10 @@
 > **test checklist** for the owner. The next phase starts only after the
 > owner has tested and approved the previous one.
 >
-> Scope of this plan: fix what exists today. New features (receipts,
-> reminders, bKash, maintenance requests, …) are discussed after Phase 3.
+> Phases 1–2 fixed what existed. Phase 3 made it look the part and added a
+> public demo; Phase 4 adds an AI assistant; Phase 5 makes it production
+> grade. Other new features (receipts, reminders, bKash, maintenance
+> requests, …) are discussed after Phase 5.
 
 Context: database is **Neon**, slowness observed in the **production build**.
 
@@ -114,10 +116,68 @@ Pages: landlord 22 → 6, tenant 9 → 6.
 
 ---
 
-## Phase 3 — Production Hardening
+## Phase 3 — Modern Design & Public Demo
+
+Goal: a site people call good-looking, and a demo anyone (e.g. an
+interviewer) can open in one click.
+
+- [x] Design system: deep-blue brand on cool neutrals, light and dark mode
+      (follows the device; the toggle is remembered), shared panels, icon
+      chips and coloured initials avatars, bigger touch targets
+      (36px buttons and inputs).
+- [x] Public landing page at `/` (product preview, features, how it works,
+      tenant section); signed-in users go straight to their home.
+- [x] One-click demo: "Try as landlord" / "Try as tenant" on the landing,
+      login and register pages, and a demo banner inside the app.
+- [x] Every page restyled: landlord home (collection banner, stats, needs
+      attention), buildings, building tabs, flat page, requests, reports
+      (charts follow the theme), past dues, an activity timeline grouped by
+      day; tenant home, find a flat, flat, requests, profile; dialogs;
+      404 and error pages.
+- [x] Nightly demo reset: Vercel Cron calls `/api/cron/reset-demo` at
+      03:00 Bangladesh time (protected by `CRON_SECRET`). The demo is
+      rebuilt in one transaction, relative to today; the two public demo
+      accounts keep their IDs, so anyone signed in stays signed in.
+      `npm run db:seed-demo` runs the same code on demand.
+- [x] Demo data shows every feature: former tenants with past dues,
+      pending and rejected requests, partly paid rent, new and expired
+      notices.
+
+### Also fixed in Phase 3
+
+- [x] On phones, card grids could be wider than the screen (the page
+      scrolled sideways); grids now have explicit columns.
+- [x] Reports page threw a hydration error (chart tooltip titles).
+- [x] The number in red count badges inherited a grey text colour.
+- [x] Demo data no longer has payments or requests dated in the future;
+      generated demo tenants use a reserved demo email domain and no
+      national ID, so a reset can never clash with real accounts.
+- [x] Activity log shows sign-ins as "Signed in." instead of "Signed in User".
+
+---
+
+## Phase 4 — AI Assistant (landlords only)
+
+Goal: a chat where the landlord types a task ("record 12,000 rent for flat
+203", "who owes me money?"); the assistant reads the data it needs and, for
+anything that changes data, shows a confirmation popup before doing it.
+
+- [ ] Provider: Gemini free tier behind a small provider interface, so it
+      can be swapped later.
+- [ ] Read tools (buildings, flats, dues, requests) and write tools
+      (record payment, approve/reject request, post notice), each write
+      confirmed by the landlord first.
+- [ ] Data minimisation (no NIDs or phone numbers sent), per-user usage
+      limits.
+
+---
+
+## Phase 5 — Production Hardening
 
 Goal: safe to deploy and maintain.
 
+- [ ] Speed pass, including a daily job that bills rent instead of doing it
+      on page views.
 - [ ] Environment variables validated at startup (clear error if missing).
 - [ ] Login rate limiting.
 - [ ] Unit tests (Vitest) for rent, payment status and money logic.
@@ -129,6 +189,6 @@ Goal: safe to deploy and maintain.
 
 ---
 
-## After Phase 3
+## After Phase 5
 
 Discuss and plan new features (separate plan).

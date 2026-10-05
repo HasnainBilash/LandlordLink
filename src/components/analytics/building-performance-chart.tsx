@@ -36,7 +36,7 @@ export function BuildingPerformanceChart({
                 className="h-3 rounded-full"
                 style={{
                   width: `${widthPct}%`,
-                  backgroundColor: CHART_COLORS.blue,
+                  backgroundColor: CHART_COLORS.brand,
                 }}
               />
             </div>

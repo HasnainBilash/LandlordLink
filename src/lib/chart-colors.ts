@@ -1,18 +1,19 @@
-// Categorical slots 1-3 from the validated reference palette (blue, orange,
-// aqua) — this order clears every CVD/contrast gate for up to three series.
-// The project's own --chart-1..5 tokens are still unthemed grayscale
-// placeholders, so charts use these fixed hexes directly instead.
+// Chart colours as theme variables (defined in app/globals.css), so charts
+// follow light and dark mode. Apply them through `style` — CSS variables
+// don't work inside SVG presentation attributes like fill="...".
+//
+// Occupancy colours match the status badges: occupied = green,
+// vacant = sky blue, maintenance = amber.
 export const CHART_COLORS = {
-  blue: "#2a78d6",
-  orange: "#eb6834",
-  aqua: "#1baf7a",
+  brand: "var(--chart-1)",
+  occupied: "var(--chart-3)",
+  vacant: "var(--chart-2)",
+  maintenance: "var(--chart-4)",
 } as const;
 
 export const CHART_INK = {
-  primary: "#0b0b0b",
-  secondary: "#52514e",
-  muted: "#898781",
-  gridline: "#e1e0d9",
-  baseline: "#c3c2b7",
-  surface: "#fcfcfb",
+  primary: "var(--foreground)",
+  muted: "var(--muted-foreground)",
+  gridline: "var(--border)",
+  surface: "var(--card)",
 } as const;

@@ -30,3 +30,5 @@ Thumbs.db
 
 # TypeScript build cache
 *.tsbuildinfo
+# Local design screenshots (not part of the app)
+/design-preview

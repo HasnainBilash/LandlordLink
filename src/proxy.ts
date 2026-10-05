@@ -15,7 +15,10 @@ export default auth((req) => {
     pathname.startsWith("/login") ||
     pathname.startsWith("/register");
 
-  if (!isLoggedIn && !isAuthPage) {
+  // The landing page is public; it sends signed-in users to their home.
+  const isPublicPage = pathname === "/";
+
+  if (!isLoggedIn && !isAuthPage && !isPublicPage) {
     const loginUrl = new URL("/login", req.url);
 
     if (pathname !== "/") {

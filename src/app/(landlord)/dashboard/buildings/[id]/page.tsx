@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { MapPin } from "lucide-react";
+import { AlertTriangle, Building2, Inbox, KeyRound, MapPin } from "lucide-react";
 
 import { getActivityLogsForBuilding } from "@/actions/activity-log/get-activity-logs-for-building";
 import { getBuilding, getBuildingOccupancy } from "@/actions/building/get-building";
@@ -15,11 +15,14 @@ import { BuildingNotices } from "@/components/notice/building-notices";
 import { CopyButton } from "@/components/ui/copy-button";
 import { CountBadge } from "@/components/ui/count-badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { IconChip } from "@/components/ui/icon-chip";
 import { StatCard } from "@/components/ui/stat-card";
 import { HiddenBadge } from "@/components/ui/status-badges";
 import { StatusFilter } from "@/components/ui/status-filter";
+import { surface } from "@/components/ui/surface";
 import { TabNav } from "@/components/ui/tab-nav";
 import { formatMoney, pluralize } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -92,11 +95,13 @@ export default async function BuildingPage({ params, searchParams }: PageProps) 
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
+          icon={Building2}
           label="Flats rented"
           value={`${occupancy.occupied} / ${occupancy.total}`}
           hint={`${pluralize(building._count.floors, "floor")} · ${occupancy.vacant} vacant`}
         />
         <StatCard
+          icon={AlertTriangle}
           label="Rent outstanding"
           value={formatMoney(balance.totalOutstanding)}
           hint={
@@ -107,15 +112,17 @@ export default async function BuildingPage({ params, searchParams }: PageProps) 
           tone={balance.totalOutstanding > 0 ? "danger" : "default"}
         />
         <StatCard
+          icon={Inbox}
           label="Pending requests"
           value={pendingRequests}
           href={`${basePath}?tab=requests`}
         />
-        <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            Access code
-          </p>
-          <div className="mt-1 flex items-center gap-1">
+        <div className={cn(surface, "flex flex-col gap-1.5 p-4 md:p-5")}>
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-sm font-medium text-muted-foreground">Access code</p>
+            <IconChip icon={KeyRound} />
+          </div>
+          <div className="flex items-center gap-1">
             <p className="font-mono text-xl font-semibold tracking-widest md:text-2xl">
               {building.accessCode ?? "—"}
             </p>
@@ -123,7 +130,7 @@ export default async function BuildingPage({ params, searchParams }: PageProps) 
               <CopyButton value={building.accessCode} label="Copy access code" />
             )}
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Give it to tenants you&apos;ve spoken to
           </p>
         </div>
@@ -185,6 +192,7 @@ async function BuildingRequests({
 
       {requests.length === 0 ? (
         <EmptyState
+          icon={Inbox}
           title="No requests here"
           description="Tenants request flats from “Find a flat” using this building's access code."
         />

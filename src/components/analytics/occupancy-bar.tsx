@@ -11,9 +11,9 @@ const HEIGHT = 24;
 const GAP = 2;
 
 const SEGMENTS = [
-  { key: "occupied", label: "Occupied", color: CHART_COLORS.blue },
-  { key: "vacant", label: "Vacant", color: CHART_COLORS.orange },
-  { key: "maintenance", label: "Maintenance", color: CHART_COLORS.aqua },
+  { key: "occupied", label: "Occupied", color: CHART_COLORS.occupied },
+  { key: "vacant", label: "Vacant", color: CHART_COLORS.vacant },
+  { key: "maintenance", label: "Maintenance", color: CHART_COLORS.maintenance },
 ] as const;
 
 export function OccupancyBar({
@@ -61,7 +61,7 @@ export function OccupancyBar({
               y={0}
               width={rect.width}
               height={HEIGHT}
-              fill={rect.color}
+              style={{ fill: rect.color }}
             />
           ))}
 
@@ -72,7 +72,7 @@ export function OccupancyBar({
               y={0}
               width={GAP}
               height={HEIGHT}
-              fill={CHART_INK.surface}
+              style={{ fill: CHART_INK.surface }}
             />
           ))}
         </g>
