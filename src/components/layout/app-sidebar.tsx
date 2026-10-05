@@ -1,9 +1,14 @@
+import { Suspense } from "react";
+
 import { getPendingJoinRequestsCount } from "@/actions/join-request/get-pending-join-requests-count";
+import { CountBadge } from "@/components/ui/count-badge";
 import { SidebarNav } from "./sidebar-nav";
 
-export async function AppSidebar() {
-  const pendingCount = await getPendingJoinRequestsCount();
+async function PendingRequestsBadge() {
+  return <CountBadge count={await getPendingJoinRequestsCount()} />;
+}
 
+export function AppSidebar() {
   return (
     <aside className="w-64 border-r bg-background">
       <div className="border-b p-6">
@@ -12,7 +17,14 @@ export async function AppSidebar() {
         </h2>
       </div>
 
-      <SidebarNav pendingCount={pendingCount} />
+      {/* The badge streams in after the page renders instead of blocking it. */}
+      <SidebarNav
+        requestsBadge={
+          <Suspense fallback={null}>
+            <PendingRequestsBadge />
+          </Suspense>
+        }
+      />
     </aside>
   );
 }

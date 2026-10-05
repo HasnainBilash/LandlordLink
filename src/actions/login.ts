@@ -16,11 +16,18 @@ export async function loginUser(
   _prevState: LoginState,
   formData: FormData
 ): Promise<LoginState> {
+  // Only accept in-app paths ("/x", not "//evil.com") as a return target.
+  const callbackUrl = formData.get("callbackUrl");
+  const redirectTo =
+    typeof callbackUrl === "string" && /^\/(?!\/)/.test(callbackUrl)
+      ? callbackUrl
+      : "/";
+
   try {
     await signIn("credentials", {
       email: formData.get("email"),
       password: formData.get("password"),
-      redirectTo: "/",
+      redirectTo,
     });
 
     return { success: true };

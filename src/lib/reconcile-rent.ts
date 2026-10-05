@@ -5,33 +5,59 @@ import {
   getRentDueDate,
 } from "@/lib/rent";
 
-export async function reconcileRentForLease(leaseId: string) {
-  const lease = await prisma.lease.findUnique({
-    where: { id: leaseId },
-  });
-
-  if (!lease || lease.status !== "ACTIVE") {
+// Brings Rent rows up to date for many leases at once: creates any
+// missing monthly rows and flips past-month PENDING rows to OVERDUE.
+//
+// Runs a fixed number of queries no matter how many leases are passed
+// (previously it was 3 queries per lease, on every page view). When all
+// rows already exist — the normal case — no insert is attempted.
+export async function reconcileRentForLeases(leaseIds: string[]) {
+  if (leaseIds.length === 0) {
     return;
   }
 
-  const now = new Date();
+  const [leases, existing] = await Promise.all([
+    prisma.lease.findMany({
+      where: { id: { in: leaseIds }, status: "ACTIVE" },
+      select: { id: true, startDate: true, monthlyRent: true },
+    }),
+    prisma.rent.groupBy({
+      by: ["leaseId"],
+      where: { leaseId: { in: leaseIds } },
+      _count: { _all: true },
+    }),
+  ]);
 
-  const { month: firstMonth, year: firstYear } = getFirstBillableMonth(
-    lease.startDate
+  if (leases.length === 0) {
+    return;
+  }
+
+  const existingCount = new Map(
+    existing.map((row) => [row.leaseId, row._count._all])
   );
 
-  const periods = getMonthsBetween(getRentDueDate(firstMonth, firstYear), now);
+  const now = new Date();
 
-  await prisma.rent.createMany({
-    data: periods.map(({ month, year }) => ({
-      leaseId,
-      month,
-      year,
+  const missing = leases.flatMap((lease) => {
+    const { month, year } = getFirstBillableMonth(lease.startDate);
+    const periods = getMonthsBetween(getRentDueDate(month, year), now);
+
+    if ((existingCount.get(lease.id) ?? 0) >= periods.length) {
+      return [];
+    }
+
+    return periods.map((period) => ({
+      leaseId: lease.id,
+      month: period.month,
+      year: period.year,
       amount: lease.monthlyRent,
-      dueDate: getRentDueDate(month, year),
-    })),
-    skipDuplicates: true,
+      dueDate: getRentDueDate(period.month, period.year),
+    }));
   });
+
+  if (missing.length > 0) {
+    await prisma.rent.createMany({ data: missing, skipDuplicates: true });
+  }
 
   const startOfThisMonth = getRentDueDate(
     now.getUTCMonth() + 1,
@@ -40,7 +66,7 @@ export async function reconcileRentForLease(leaseId: string) {
 
   await prisma.rent.updateMany({
     where: {
-      leaseId,
+      leaseId: { in: leases.map((lease) => lease.id) },
       status: "PENDING",
       dueDate: { lt: startOfThisMonth },
     },
@@ -48,4 +74,8 @@ export async function reconcileRentForLease(leaseId: string) {
       status: "OVERDUE",
     },
   });
+}
+
+export async function reconcileRentForLease(leaseId: string) {
+  await reconcileRentForLeases([leaseId]);
 }

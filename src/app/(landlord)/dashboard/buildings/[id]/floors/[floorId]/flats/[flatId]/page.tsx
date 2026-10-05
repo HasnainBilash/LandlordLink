@@ -57,46 +57,49 @@ export default async function FlatDetailsPage({ params }: PageProps) {
 
   const now = new Date();
 
-  const rentRows: BillingRow[] = activeLease
-    ? (await getRentsForLease(activeLease.id)).map((rent) => ({
-        id: rent.id,
-        label: `${MONTH_NAMES[rent.month - 1]} ${rent.year}`,
-        amount: Number(rent.amount),
-        paidTotal: rent.payments.reduce(
-          (sum, payment) => sum + Number(payment.amount),
-          0
-        ),
-        dueDate: rent.dueDate,
-        status: rent.status,
-        target: { type: "RENT", id: rent.id },
-      }))
-    : [];
+  const [rents, utilityBills] = activeLease
+    ? await Promise.all([
+        getRentsForLease(activeLease.id),
+        getUtilityBillsForLease(activeLease.id),
+      ])
+    : [[], []];
 
-  const utilityBillRows: BillingRow[] = activeLease
-    ? (await getUtilityBillsForLease(activeLease.id)).map((bill) => {
-        const paidTotal = bill.payments.reduce(
-          (sum, payment) => sum + Number(payment.amount),
-          0
-        );
+  const rentRows: BillingRow[] = rents.map((rent) => ({
+    id: rent.id,
+    label: `${MONTH_NAMES[rent.month - 1]} ${rent.year}`,
+    amount: Number(rent.amount),
+    paidTotal: rent.payments.reduce(
+      (sum, payment) => sum + Number(payment.amount),
+      0
+    ),
+    dueDate: rent.dueDate,
+    status: rent.status,
+    target: { type: "RENT", id: rent.id },
+  }));
 
-        return {
-          id: bill.id,
-          label: `${UTILITY_TYPE_LABELS[bill.type]} — ${
-            MONTH_NAMES[bill.month - 1]
-          } ${bill.year}`,
-          amount: Number(bill.amount),
-          paidTotal,
-          dueDate: bill.dueDate,
-          status: computePaymentStatus({
-            amount: Number(bill.amount),
-            paidTotal,
-            dueDate: bill.dueDate,
-            now,
-          }),
-          target: { type: "UTILITY_BILL", id: bill.id },
-        };
-      })
-    : [];
+  const utilityBillRows: BillingRow[] = utilityBills.map((bill) => {
+    const paidTotal = bill.payments.reduce(
+      (sum, payment) => sum + Number(payment.amount),
+      0
+    );
+
+    return {
+      id: bill.id,
+      label: `${UTILITY_TYPE_LABELS[bill.type]} — ${
+        MONTH_NAMES[bill.month - 1]
+      } ${bill.year}`,
+      amount: Number(bill.amount),
+      paidTotal,
+      dueDate: bill.dueDate,
+      status: computePaymentStatus({
+        amount: Number(bill.amount),
+        paidTotal,
+        dueDate: bill.dueDate,
+        now,
+      }),
+      target: { type: "UTILITY_BILL", id: bill.id },
+    };
+  });
 
   return (
     <div className="space-y-6">

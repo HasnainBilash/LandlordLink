@@ -163,14 +163,27 @@ This is purely additive — it never touches or deletes existing data.
 
 ## Environment Variables
 
-Create a `.env` file.
-
-Required variables include:
+Copy `.env.example` to `.env` and fill it in:
 
 ```env
+# Neon pooled connection (host contains "-pooler") — used by the app
 DATABASE_URL=
+# Neon direct connection (same, without "-pooler") — used by prisma migrate
+DIRECT_URL=
 AUTH_SECRET=
 ```
+
+### Neon performance notes
+
+- **Region:** create the Neon project in the same region as the app
+  server (e.g. Vercel functions and Neon both in Singapore,
+  `ap-southeast-1`). A region mismatch adds latency to *every* query.
+- **Pooled URL:** always use the `-pooler` host for `DATABASE_URL`.
+- **Cold starts:** Neon's free tier suspends the database after ~5
+  minutes idle; the first request after that takes ~0.5–1s extra. On a
+  paid plan you can disable scale-to-zero.
+
+Apply migrations with `npm run db:migrate`.
 
 ---
 

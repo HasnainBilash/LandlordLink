@@ -1,11 +1,16 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
+
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { reconcileRentForLease } from "@/lib/reconcile-rent";
+import { reconcileRentForLeases } from "@/lib/reconcile-rent";
 import { MONTH_NAMES } from "@/lib/rent";
 
 const MONTHLY_HISTORY_LENGTH = 6;
+
+type BuildingAmountRow = { buildingId: string; amount: number };
+type RevenueRow = { buildingId: string; monthKey: string; amount: number };
 
 export async function getPortfolioReport() {
   const session = await auth();
@@ -23,6 +28,7 @@ export async function getPortfolioReport() {
   const now = new Date();
   const thisMonth = now.getUTCMonth();
   const thisYear = now.getUTCFullYear();
+  const thisMonthKey = `${thisYear}-${String(thisMonth + 1).padStart(2, "0")}`;
 
   const monthKeys = Array.from(
     { length: MONTHLY_HISTORY_LENGTH },
@@ -54,14 +60,92 @@ export async function getPortfolioReport() {
   }
 
   const buildingIds = buildings.map((b) => b.id);
+  const buildingIdList = Prisma.join(buildingIds);
 
-  const flats = await prisma.flat.findMany({
-    where: {
-      deletedAt: null,
-      floor: { deletedAt: null, buildingId: { in: buildingIds } },
-    },
-    select: { status: true, floor: { select: { buildingId: true } } },
-  });
+  const [flats, activeLeases] = await Promise.all([
+    prisma.flat.findMany({
+      where: {
+        deletedAt: null,
+        floor: { deletedAt: null, buildingId: { in: buildingIds } },
+      },
+      select: { status: true, floor: { select: { buildingId: true } } },
+    }),
+    prisma.lease.findMany({
+      where: {
+        status: "ACTIVE",
+        flat: { floor: { buildingId: { in: buildingIds } } },
+      },
+      select: { id: true },
+    }),
+  ]);
+
+  const leaseIds = activeLeases.map((lease) => lease.id);
+
+  await reconcileRentForLeases(leaseIds);
+
+  // All money totals are summed by Postgres; only a handful of rows
+  // (one per building, or per building+month) come back.
+  const [outstandingRentRows, outstandingUtilityRows, revenueRows, rentDueRows] =
+    await Promise.all([
+      prisma.$queryRaw<BuildingAmountRow[]>`
+        SELECT fl."buildingId" AS "buildingId",
+               SUM(r."amount" - COALESCE(p."paid", 0))::float8 AS "amount"
+        FROM "Rent" r
+        JOIN "Lease" l ON l."id" = r."leaseId"
+        JOIN "Flat" f ON f."id" = l."flatId"
+        JOIN "Floor" fl ON fl."id" = f."floorId"
+        LEFT JOIN (
+          SELECT "rentId", SUM("amount") AS "paid"
+          FROM "PaymentHistory"
+          WHERE "rentId" IS NOT NULL
+          GROUP BY "rentId"
+        ) p ON p."rentId" = r."id"
+        WHERE l."status" = 'ACTIVE'
+          AND r."status" IN ('PENDING', 'OVERDUE', 'PARTIAL')
+          AND fl."buildingId" IN (${buildingIdList})
+        GROUP BY fl."buildingId"
+      `,
+      prisma.$queryRaw<BuildingAmountRow[]>`
+        SELECT fl."buildingId" AS "buildingId",
+               SUM(GREATEST(u."amount" - COALESCE(p."paid", 0), 0))::float8 AS "amount"
+        FROM "UtilityBill" u
+        JOIN "Lease" l ON l."id" = u."leaseId"
+        JOIN "Flat" f ON f."id" = l."flatId"
+        JOIN "Floor" fl ON fl."id" = f."floorId"
+        LEFT JOIN (
+          SELECT "utilityBillId", SUM("amount") AS "paid"
+          FROM "PaymentHistory"
+          WHERE "utilityBillId" IS NOT NULL
+          GROUP BY "utilityBillId"
+        ) p ON p."utilityBillId" = u."id"
+        WHERE l."status" = 'ACTIVE'
+          AND fl."buildingId" IN (${buildingIdList})
+        GROUP BY fl."buildingId"
+      `,
+      prisma.$queryRaw<RevenueRow[]>`
+        SELECT fl."buildingId" AS "buildingId",
+               to_char(ph."paidAt", 'YYYY-MM') AS "monthKey",
+               SUM(ph."amount")::float8 AS "amount"
+        FROM "PaymentHistory" ph
+        LEFT JOIN "Rent" r ON r."id" = ph."rentId"
+        LEFT JOIN "UtilityBill" u ON u."id" = ph."utilityBillId"
+        JOIN "Lease" l ON l."id" = COALESCE(r."leaseId", u."leaseId")
+        JOIN "Flat" f ON f."id" = l."flatId"
+        JOIN "Floor" fl ON fl."id" = f."floorId"
+        WHERE fl."buildingId" IN (${buildingIdList})
+        GROUP BY fl."buildingId", "monthKey"
+      `,
+      leaseIds.length
+        ? prisma.rent.groupBy({
+            by: ["year", "month"],
+            where: {
+              leaseId: { in: leaseIds },
+              OR: monthKeys.map(({ month, year }) => ({ month, year })),
+            },
+            _sum: { amount: true },
+          })
+        : Promise.resolve([]),
+    ]);
 
   const occupancyByBuilding = new Map<
     string,
@@ -78,184 +162,41 @@ export async function getPortfolioReport() {
     else bucket.maintenance++;
   }
 
-  const activeLeases = await prisma.lease.findMany({
-    where: {
-      status: "ACTIVE",
-      flat: { floor: { buildingId: { in: buildingIds } } },
-    },
-    select: {
-      id: true,
-      flat: { select: { floor: { select: { buildingId: true } } } },
-    },
-  });
-
-  await Promise.all(
-    activeLeases.map((lease) => reconcileRentForLease(lease.id))
+  const outstandingRentByBuilding = new Map(
+    outstandingRentRows.map((row) => [row.buildingId, row.amount])
   );
-
-  const leaseBuildingMap = new Map(
-    activeLeases.map((lease) => [lease.id, lease.flat.floor.buildingId])
+  const outstandingUtilityByBuilding = new Map(
+    outstandingUtilityRows.map((row) => [row.buildingId, row.amount])
   );
-  const leaseIds = activeLeases.map((lease) => lease.id);
-
-  const unpaidRent = leaseIds.length
-    ? await prisma.rent.findMany({
-        where: {
-          leaseId: { in: leaseIds },
-          status: { in: ["PENDING", "OVERDUE", "PARTIAL"] },
-        },
-        select: {
-          amount: true,
-          leaseId: true,
-          payments: { select: { amount: true } },
-        },
-      })
-    : [];
-
-  let outstandingRentTotal = 0;
-  const outstandingRentByBuilding = new Map<string, number>();
-
-  for (const rent of unpaidRent) {
-    const paid = rent.payments.reduce(
-      (sum, payment) => sum + Number(payment.amount),
-      0
-    );
-    const remaining = Number(rent.amount) - paid;
-
-    outstandingRentTotal += remaining;
-
-    const buildingId = leaseBuildingMap.get(rent.leaseId);
-
-    if (buildingId) {
-      outstandingRentByBuilding.set(
-        buildingId,
-        (outstandingRentByBuilding.get(buildingId) ?? 0) + remaining
-      );
-    }
-  }
-
-  const utilityBills = leaseIds.length
-    ? await prisma.utilityBill.findMany({
-        where: { leaseId: { in: leaseIds } },
-        select: {
-          amount: true,
-          leaseId: true,
-          payments: { select: { amount: true } },
-        },
-      })
-    : [];
-
-  let outstandingUtilityTotal = 0;
-  const outstandingUtilityByBuilding = new Map<string, number>();
-
-  for (const bill of utilityBills) {
-    const paid = bill.payments.reduce(
-      (sum, payment) => sum + Number(payment.amount),
-      0
-    );
-    const remaining = Number(bill.amount) - paid;
-
-    if (remaining <= 0) continue;
-
-    outstandingUtilityTotal += remaining;
-
-    const buildingId = leaseBuildingMap.get(bill.leaseId);
-
-    if (buildingId) {
-      outstandingUtilityByBuilding.set(
-        buildingId,
-        (outstandingUtilityByBuilding.get(buildingId) ?? 0) + remaining
-      );
-    }
-  }
-
-  const payments = await prisma.paymentHistory.findMany({
-    where: {
-      OR: [
-        {
-          rent: {
-            lease: { flat: { floor: { buildingId: { in: buildingIds } } } },
-          },
-        },
-        {
-          utilityBill: {
-            lease: { flat: { floor: { buildingId: { in: buildingIds } } } },
-          },
-        },
-      ],
-    },
-    select: {
-      amount: true,
-      paidAt: true,
-      rent: {
-        select: {
-          lease: { select: { flat: { select: { floor: true } } } },
-        },
-      },
-      utilityBill: {
-        select: {
-          lease: { select: { flat: { select: { floor: true } } } },
-        },
-      },
-    },
-  });
 
   let revenueAllTime = 0;
   let revenueThisMonth = 0;
   const revenueByBuilding = new Map<string, number>();
   const monthlyRevenue = new Map<string, number>();
 
-  for (const payment of payments) {
-    const amount = Number(payment.amount);
-    const buildingId =
-      payment.rent?.lease.flat.floor.buildingId ??
-      payment.utilityBill?.lease.flat.floor.buildingId;
+  for (const row of revenueRows) {
+    revenueAllTime += row.amount;
 
-    revenueAllTime += amount;
-
-    if (buildingId) {
-      revenueByBuilding.set(
-        buildingId,
-        (revenueByBuilding.get(buildingId) ?? 0) + amount
-      );
+    if (row.monthKey === thisMonthKey) {
+      revenueThisMonth += row.amount;
     }
 
-    const paidAt = new Date(payment.paidAt);
-
-    if (
-      paidAt.getUTCFullYear() === thisYear &&
-      paidAt.getUTCMonth() === thisMonth
-    ) {
-      revenueThisMonth += amount;
-    }
-
-    const key = `${paidAt.getUTCFullYear()}-${String(
-      paidAt.getUTCMonth() + 1
-    ).padStart(2, "0")}`;
-
-    monthlyRevenue.set(key, (monthlyRevenue.get(key) ?? 0) + amount);
-  }
-
-  const rentDueRows = leaseIds.length
-    ? await prisma.rent.findMany({
-        where: {
-          leaseId: { in: leaseIds },
-          OR: monthKeys.map(({ month, year }) => ({ month, year })),
-        },
-        select: { amount: true, month: true, year: true },
-      })
-    : [];
-
-  const rentDueByMonth = new Map<string, number>();
-
-  for (const rent of rentDueRows) {
-    const key = `${rent.year}-${String(rent.month).padStart(2, "0")}`;
-
-    rentDueByMonth.set(
-      key,
-      (rentDueByMonth.get(key) ?? 0) + Number(rent.amount)
+    revenueByBuilding.set(
+      row.buildingId,
+      (revenueByBuilding.get(row.buildingId) ?? 0) + row.amount
+    );
+    monthlyRevenue.set(
+      row.monthKey,
+      (monthlyRevenue.get(row.monthKey) ?? 0) + row.amount
     );
   }
+
+  const rentDueByMonth = new Map(
+    rentDueRows.map((row) => [
+      `${row.year}-${String(row.month).padStart(2, "0")}`,
+      Number(row._sum.amount ?? 0),
+    ])
+  );
 
   const monthly = monthKeys.map(({ key, month, year }) => ({
     label: `${MONTH_NAMES[month - 1]} ${year}`,
@@ -300,13 +241,16 @@ export async function getPortfolioReport() {
     };
   });
 
+  const sum = (values: Iterable<number>) =>
+    [...values].reduce((total, value) => total + value, 0);
+
   return {
     buildings: buildingRows,
     occupancy,
     revenue: { allTime: revenueAllTime, thisMonth: revenueThisMonth },
     outstanding: {
-      rent: outstandingRentTotal,
-      utilityBills: outstandingUtilityTotal,
+      rent: sum(outstandingRentByBuilding.values()),
+      utilityBills: sum(outstandingUtilityByBuilding.values()),
     },
     monthly,
   };

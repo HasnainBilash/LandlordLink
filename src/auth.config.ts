@@ -1,54 +1,15 @@
 import type { NextAuthConfig } from "next-auth";
-import Credentials from "next-auth/providers/credentials";
 
-import bcrypt from "bcryptjs";
-
-import { prisma } from "@/lib/prisma";
-import { logActivity } from "@/lib/log-activity";
-
+// Lightweight config shared by the proxy and the full Auth.js instance.
+// It must not import Prisma, bcrypt or anything heavy: the proxy runs on
+// every request and only needs to decode the JWT.
 export default {
-  providers: [
-    Credentials({
-      name: "Credentials",
+  providers: [],
 
-      credentials: {
-        email: {},
-        password: {},
-      },
-
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email as string,
-          },
-        });
-
-        if (!user) {
-          return null;
-        }
-
-        const passwordMatch = await bcrypt.compare(
-          credentials.password as string,
-          user.passwordHash
-        );
-
-        if (!passwordMatch) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        };
-      },
-    }),
-  ],
+  // Trust the request's Host header. Vercel sets this automatically;
+  // without it, `npm start` (local production mode) rejects every
+  // session request with "UntrustedHost".
+  trustHost: true,
 
   session: {
     strategy: "jwt",
@@ -75,21 +36,13 @@ export default {
 
       return session;
     },
-    async redirect({ baseUrl }) {
+
+    // Allow same-origin redirects (e.g. back to the page that required
+    // login); anything else falls back to the home page.
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (new URL(url).origin === baseUrl) return url;
       return baseUrl;
-    }
-  },
-
-  events: {
-    async signIn({ user }) {
-      if (!user.id) return;
-
-      await logActivity({
-        userId: user.id,
-        action: "LOGIN",
-        entity: "User",
-        entityId: user.id,
-      });
     },
   },
 } satisfies NextAuthConfig;

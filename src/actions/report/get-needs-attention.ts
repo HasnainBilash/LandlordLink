@@ -2,6 +2,8 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { reconcileRentForLeases } from "@/lib/reconcile-rent";
+import { getRentDueDate } from "@/lib/rent";
 
 export async function getNeedsAttention() {
   const session = await auth();
@@ -9,6 +11,25 @@ export async function getNeedsAttention() {
   if (!session?.user?.id || session.user.role !== "LANDLORD") {
     return { pendingRequests: 0, overdueFlats: [] };
   }
+
+  // Rent rows only turn OVERDUE when reconciled, so bring them up to
+  // date first — otherwise the dashboard could miss overdue rent until
+  // someone happened to open Reports or the flat page.
+  const activeLeases = await prisma.lease.findMany({
+    where: {
+      status: "ACTIVE",
+      flat: { floor: { building: { ownerId: session.user.id } } },
+    },
+    select: { id: true },
+  });
+
+  await reconcileRentForLeases(activeLeases.map((lease) => lease.id));
+
+  const now = new Date();
+  const startOfThisMonth = getRentDueDate(
+    now.getUTCMonth() + 1,
+    now.getUTCFullYear()
+  );
 
   const [pendingRequests, overdueRent] = await Promise.all([
     prisma.joinRequest.count({
@@ -19,7 +40,11 @@ export async function getNeedsAttention() {
     }),
     prisma.rent.findMany({
       where: {
-        status: "OVERDUE",
+        // A partly-paid rent from a past month is overdue too.
+        OR: [
+          { status: "OVERDUE" },
+          { status: "PARTIAL", dueDate: { lt: startOfThisMonth } },
+        ],
         lease: {
           flat: { floor: { building: { ownerId: session.user.id } } },
         },

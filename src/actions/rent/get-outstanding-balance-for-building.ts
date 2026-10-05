@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { reconcileRentForLease } from "@/lib/reconcile-rent";
+import { reconcileRentForLeases } from "@/lib/reconcile-rent";
 
 export async function getOutstandingBalanceForBuilding(buildingId: string) {
   const session = await auth();
@@ -30,9 +30,7 @@ export async function getOutstandingBalanceForBuilding(buildingId: string) {
     return { totalOutstanding: 0, flatsWithOutstandingRent: 0 };
   }
 
-  await Promise.all(
-    activeLeases.map((lease) => reconcileRentForLease(lease.id))
-  );
+  await reconcileRentForLeases(activeLeases.map((lease) => lease.id));
 
   const unpaidRent = await prisma.rent.findMany({
     where: {
@@ -51,11 +49,12 @@ export async function getOutstandingBalanceForBuilding(buildingId: string) {
     return sum + (Number(rent.amount) - paidSoFar);
   }, 0);
 
+  const flatIdByLease = new Map(
+    activeLeases.map((lease) => [lease.id, lease.flatId])
+  );
+
   const flatsWithOutstandingRent = new Set(
-    unpaidRent.map(
-      (rent) =>
-        activeLeases.find((lease) => lease.id === rent.leaseId)?.flatId
-    )
+    unpaidRent.map((rent) => flatIdByLease.get(rent.leaseId))
   ).size;
 
   return { totalOutstanding, flatsWithOutstandingRent };

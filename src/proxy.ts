@@ -1,6 +1,9 @@
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 
-import { auth } from "@/auth";
+import authConfig from "@/auth.config";
+
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
@@ -13,7 +16,16 @@ export default auth((req) => {
     pathname.startsWith("/register");
 
   if (!isLoggedIn && !isAuthPage) {
-    return NextResponse.redirect(new URL("/login", req.url));
+    const loginUrl = new URL("/login", req.url);
+
+    if (pathname !== "/") {
+      loginUrl.searchParams.set(
+        "callbackUrl",
+        `${pathname}${req.nextUrl.search}`
+      );
+    }
+
+    return NextResponse.redirect(loginUrl);
   }
 
   if (isLoggedIn && isAuthPage) {
@@ -32,7 +44,7 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
-  ],
+  // Skip API routes, Next internals and any static file (anything with
+  // a file extension, e.g. images in /public).
+  matcher: ["/((?!api|_next/static|_next/image|.*\\.[\\w]+$).*)"],
 };

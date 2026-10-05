@@ -13,11 +13,19 @@ const initialState: LoginState = {
   success: false,
 };
 
-export function LoginForm() {
+type LoginFormProps = {
+  callbackUrl?: string;
+};
+
+export function LoginForm({ callbackUrl }: LoginFormProps) {
   const [state, action, isPending] = useActionState(loginUser, initialState);
 
   return (
     <form action={action} className="space-y-5">
+      {callbackUrl && (
+        <input type="hidden" name="callbackUrl" value={callbackUrl} />
+      )}
+
       {state.errors?.general && (
         <p className="text-sm text-red-500">
           {state.errors.general[0]}

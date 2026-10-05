@@ -1,12 +1,13 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
 type SidebarNavProps = {
-  pendingCount: number;
+  requestsBadge: ReactNode;
 };
 
 const LINKS = [
@@ -22,7 +23,7 @@ function isActive(pathname: string, href: string, exact?: boolean) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function SidebarNav({ pendingCount }: SidebarNavProps) {
+export function SidebarNav({ requestsBadge }: SidebarNavProps) {
   const pathname = usePathname();
 
   return (
@@ -44,11 +45,7 @@ export function SidebarNav({ pendingCount }: SidebarNavProps) {
           >
             {link.label}
 
-            {link.href === "/dashboard/requests" && pendingCount > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-semibold text-destructive-foreground">
-                {pendingCount}
-              </span>
-            )}
+            {link.href === "/dashboard/requests" && requestsBadge}
           </Link>
         );
       })}

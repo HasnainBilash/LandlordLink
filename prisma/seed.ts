@@ -4,6 +4,18 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
+  // This script DELETES EVERY ROW in the database before seeding.
+  // Refuse to run unless explicitly allowed, so it can never wipe a
+  // real database by accident. For test data use: npm run db:seed-test
+  if (process.env.ALLOW_DB_WIPE !== "yes") {
+    console.error(
+      "Refusing to run: prisma/seed.ts wipes the whole database. " +
+        "Set ALLOW_DB_WIPE=yes if you really mean it, or use npm run db:seed-test."
+    );
+    process.exitCode = 1;
+    return;
+  }
+
   await prisma.activityLog.deleteMany();
   await prisma.paymentHistory.deleteMany();
   await prisma.utilityBill.deleteMany();

@@ -38,31 +38,32 @@ export async function getTenantFlatView(flatId: string) {
     return null;
   }
 
-  const flat = await prisma.flat.findFirst({
-    where: {
-      id: flatId,
-      deletedAt: null,
-    },
-    include: {
-      floor: {
-        include: {
-          building: true,
+  const [flat, activeLease] = await Promise.all([
+    prisma.flat.findFirst({
+      where: {
+        id: flatId,
+        deletedAt: null,
+      },
+      include: {
+        floor: {
+          include: {
+            building: true,
+          },
         },
       },
-    },
-  });
+    }),
+    prisma.lease.findFirst({
+      where: {
+        tenantId: tenantProfile.id,
+        flatId,
+        status: "ACTIVE",
+      },
+    }),
+  ]);
 
   if (!flat) {
     return null;
   }
-
-  const activeLease = await prisma.lease.findFirst({
-    where: {
-      tenantId: tenantProfile.id,
-      flatId,
-      status: "ACTIVE",
-    },
-  });
 
   let rents: Awaited<
     ReturnType<typeof prisma.rent.findMany<{ include: { payments: true } }>>

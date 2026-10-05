@@ -1,7 +1,9 @@
 // Additive demo-data seed: creates a brand-new demo landlord, buildings,
 // floors, flats, tenants, leases, rent/utility billing history, notices,
-// and activity log entries. Never touches or deletes existing data —
-// safe to run against a database that already has real/test records.
+// and activity log entries. Re-runnable: it replaces only its own demo
+// accounts and never touches any other data.
+//
+// Run: npm run db:seed-demo
 
 import { PrismaClient, UserRole, FlatStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
@@ -151,12 +153,21 @@ async function main() {
     where: { email: DEMO_LANDLORD.email },
   });
 
+  // Re-running refreshes the demo: the old demo landlord (cascades to its
+  // buildings, flats, leases, rent…) and every demo tenant (nationalId
+  // "DEMO-…") are removed first, then everything is recreated relative to
+  // today — so the history always looks current. Nothing else is touched.
   if (existingLandlord) {
-    console.log(
-      `Demo landlord ${DEMO_LANDLORD.email} already exists (id ${existingLandlord.id}). Re-running would create duplicate buildings, so aborting.`
-    );
-    console.log("Delete that user (cascades to everything under it) first if you want a fresh run.");
-    return;
+    const removed = await prisma.user.deleteMany({
+      where: {
+        OR: [
+          { id: existingLandlord.id },
+          { tenantProfile: { nationalId: { startsWith: "DEMO-" } } },
+        ],
+      },
+    });
+
+    console.log(`Removed previous demo data (${removed.count} accounts).`);
   }
 
   const landlord = await prisma.user.create({

@@ -27,17 +27,20 @@ export default async function BuildingDetailsPage({
 }: PageProps) {
   const { id } = await params;
 
-  const building = await getBuilding(id);
+  // All three queries check ownership themselves, so run them together.
+  const [
+    building,
+    { totalOutstanding, flatsWithOutstandingRent },
+    pendingRequests,
+  ] = await Promise.all([
+    getBuilding(id),
+    getOutstandingBalanceForBuilding(id),
+    getPendingJoinRequestsCount(id),
+  ]);
 
   if (!building) {
     notFound();
   }
-
-  const [{ totalOutstanding, flatsWithOutstandingRent }, pendingRequests] =
-    await Promise.all([
-      getOutstandingBalanceForBuilding(id),
-      getPendingJoinRequestsCount(id),
-    ]);
 
   return (
     <div className="space-y-6">
@@ -93,7 +96,7 @@ export default async function BuildingDetailsPage({
 
           <StatTile
             label="Floors"
-            value={building.floors.length}
+            value={building._count.floors}
             href={`/dashboard/buildings/${building.id}/floors`}
           />
 
@@ -106,7 +109,7 @@ export default async function BuildingDetailsPage({
 
           <StatTile
             label="Notices"
-            value={building.notices.length}
+            value={building._count.notices}
             href={`/dashboard/buildings/${building.id}/notices`}
           />
 
@@ -149,13 +152,6 @@ export default async function BuildingDetailsPage({
             {building.accessCode ?? "—"}
           </p>
 
-          {!building.accessCode && (
-            <p className="mt-2 text-sm text-destructive">
-              This building has no access code yet (it was created before
-              this feature existed), so tenants can&apos;t submit requests
-              for it. Run the backfill script to generate one.
-            </p>
-          )}
         </CardContent>
       </Card>
     </div>

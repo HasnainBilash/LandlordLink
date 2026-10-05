@@ -1,17 +1,20 @@
-import { ReactNode } from "react";
+import { ReactNode, Suspense } from "react";
 import Link from "next/link";
 
 import { getUnreadNoticeCount } from "@/actions/notice/get-unread-notice-count";
 
 import { AppHeader } from "@/components/layout/app-header";
+import { CountBadge } from "@/components/ui/count-badge";
 
 type TenantLayoutProps = {
   children: ReactNode;
 };
 
-export default async function TenantLayout({ children }: TenantLayoutProps) {
-  const unreadNoticeCount = await getUnreadNoticeCount();
+async function UnreadNoticesBadge() {
+  return <CountBadge count={await getUnreadNoticeCount()} />;
+}
 
+export default function TenantLayout({ children }: TenantLayoutProps) {
   return (
     <div className="min-h-screen bg-muted/30">
       <AppHeader />
@@ -38,11 +41,10 @@ export default async function TenantLayout({ children }: TenantLayoutProps) {
           className="flex items-center gap-1.5 hover:text-foreground hover:underline"
         >
           Notices
-          {unreadNoticeCount > 0 && (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-semibold text-destructive-foreground">
-              {unreadNoticeCount}
-            </span>
-          )}
+          {/* Streams in after the page renders instead of blocking it. */}
+          <Suspense fallback={null}>
+            <UnreadNoticesBadge />
+          </Suspense>
         </Link>
       </nav>
 

@@ -28,37 +28,6 @@ export async function recordPayment(
     };
   }
 
-  const ownershipFilter = {
-    lease: {
-      flat: {
-        floor: {
-          building: {
-            ownerId: session.user.id,
-          },
-        },
-      },
-    },
-  };
-
-  const bill =
-    target.type === "RENT"
-      ? await prisma.rent.findFirst({
-          where: { id: target.id, ...ownershipFilter },
-          include: { payments: true, lease: { include: { flat: { include: { floor: true } } } } },
-        })
-      : await prisma.utilityBill.findFirst({
-          where: { id: target.id, ...ownershipFilter },
-          include: { payments: true, lease: { include: { flat: { include: { floor: true } } } } },
-        });
-
-  if (!bill) {
-    return {
-      success: false,
-      message: "Record not found.",
-      errors: {},
-    };
-  }
-
   const values = {
     amount: formData.get("amount"),
     transactionRef: formData.get("transactionRef"),
@@ -76,51 +45,130 @@ export async function recordPayment(
     };
   }
 
-  const paidSoFar = bill.payments.reduce(
-    (sum, payment) => sum + Number(payment.amount),
-    0
-  );
+  const ownerId = session.user.id;
+  const amount = parsed.data.amount;
 
-  const remaining = Number(bill.amount) - paidSoFar;
+  const ownershipFilter = {
+    lease: {
+      flat: {
+        floor: {
+          building: {
+            ownerId,
+          },
+        },
+      },
+    },
+  };
 
-  if (parsed.data.amount > remaining + 0.001) {
+  // The balance check and the insert run in one transaction with the
+  // bill row locked, so two quick submissions can't both pass the
+  // "remaining balance" check and overpay.
+  const result = await prisma.$transaction(async (tx) => {
+    if (target.type === "RENT") {
+      await tx.$queryRaw`SELECT "id" FROM "Rent" WHERE "id" = ${target.id} FOR UPDATE`;
+    } else {
+      await tx.$queryRaw`SELECT "id" FROM "UtilityBill" WHERE "id" = ${target.id} FOR UPDATE`;
+    }
+
+    const bill =
+      target.type === "RENT"
+        ? await tx.rent.findFirst({
+            where: { id: target.id, ...ownershipFilter },
+            include: { payments: true, lease: { include: { flat: { include: { floor: true } } } } },
+          })
+        : await tx.utilityBill.findFirst({
+            where: { id: target.id, ...ownershipFilter },
+            include: { payments: true, lease: { include: { flat: { include: { floor: true } } } } },
+          });
+
+    if (!bill) {
+      return { kind: "not-found" } as const;
+    }
+
+    const paidSoFar = bill.payments.reduce(
+      (sum, payment) => sum + Number(payment.amount),
+      0
+    );
+
+    const remaining = Number(bill.amount) - paidSoFar;
+
+    if (amount > remaining + 0.001) {
+      return { kind: "exceeds", remaining } as const;
+    }
+
+    // Safety net against repeat submissions: the same amount on the same
+    // bill a few seconds apart is almost certainly an accidental resubmit.
+    const duplicateWindowStart = new Date(Date.now() - 15_000);
+    const isDuplicate = bill.payments.some(
+      (payment) =>
+        Number(payment.amount) === amount &&
+        payment.createdAt > duplicateWindowStart
+    );
+
+    if (isDuplicate) {
+      return { kind: "duplicate" } as const;
+    }
+
+    const payment = await tx.paymentHistory.create({
+      data: {
+        paymentType: target.type === "RENT" ? "RENT" : "UTILITY",
+        rentId: target.type === "RENT" ? target.id : null,
+        utilityBillId: target.type === "UTILITY_BILL" ? target.id : null,
+        amount,
+        transactionRef: parsed.data.transactionRef || null,
+      },
+    });
+
+    if (target.type === "RENT") {
+      await tx.rent.update({
+        where: { id: target.id },
+        data: {
+          status: paidSoFar + amount >= Number(bill.amount) ? "PAID" : "PARTIAL",
+        },
+      });
+    }
+
+    return { kind: "ok", bill, payment } as const;
+  });
+
+  if (result.kind === "not-found") {
     return {
       success: false,
-      message: `Payment amount exceeds the remaining balance of $${remaining.toFixed(2)}.`,
+      message: "Record not found.",
+      errors: {},
+    };
+  }
+
+  if (result.kind === "duplicate") {
+    return {
+      success: false,
+      message:
+        "This payment was just recorded. Wait a few seconds if you really want to record the same amount again.",
+      errors: {},
+    };
+  }
+
+  if (result.kind === "exceeds") {
+    const remaining = result.remaining.toFixed(2);
+
+    return {
+      success: false,
+      message: `Payment amount exceeds the remaining balance of ${remaining}.`,
       errors: {
-        amount: [`Cannot exceed the remaining balance of $${remaining.toFixed(2)}.`],
+        amount: [`Cannot exceed the remaining balance of ${remaining}.`],
       },
     };
   }
 
-  const payment = await prisma.paymentHistory.create({
-    data: {
-      paymentType: target.type === "RENT" ? "RENT" : "UTILITY",
-      rentId: target.type === "RENT" ? target.id : null,
-      utilityBillId: target.type === "UTILITY_BILL" ? target.id : null,
-      amount: parsed.data.amount,
-      transactionRef: parsed.data.transactionRef || null,
-    },
-  });
-
-  if (target.type === "RENT") {
-    const newPaidTotal = paidSoFar + parsed.data.amount;
-
-    await prisma.rent.update({
-      where: { id: target.id },
-      data: {
-        status: newPaidTotal >= Number(bill.amount) ? "PAID" : "PARTIAL",
-      },
-    });
-  }
+  const { bill, payment } = result;
 
   await logActivity({
-    userId: session.user.id,
+    userId: ownerId,
     action: "PAY",
     entity: target.type === "RENT" ? "Rent" : "UtilityBill",
     entityId: target.id,
     buildingId: bill.lease.flat.floor.buildingId,
-    description: `Recorded payment of $${parsed.data.amount.toFixed(2)} (${payment.id}).`,
+    description: `Recorded payment of $${amount.toFixed(2)} (${payment.id}).`,
   });
 
   revalidatePath(

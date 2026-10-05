@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { recordPayment } from "@/actions/payment/record-payment";
 
@@ -23,7 +23,6 @@ export function RecordPaymentButton({
   target,
   remaining,
 }: RecordPaymentButtonProps) {
-  const router = useRouter();
   const [isRecording, setIsRecording] = useState(false);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
 
@@ -40,10 +39,19 @@ export function RecordPaymentButton({
 
     if (!result.success) {
       setErrors(result.errors);
+
+      if (Object.keys(result.errors).length === 0) {
+        toast.error(result.message);
+      }
+
       return;
     }
 
-    router.refresh();
+    // Close the form so another click can't record the payment again.
+    // The server action revalidates the page, so the updated balance
+    // arrives together with this result — no extra refresh needed.
+    setIsRecording(false);
+    toast.success(result.message);
   }
 
   if (isRecording) {
