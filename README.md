@@ -157,7 +157,8 @@ billing history for exploring the app:
 npx tsx prisma/seed-demo-landlord.ts
 ```
 
-This is purely additive — it never touches or deletes existing data.
+It only touches its own demo accounts: re-running it replaces them with
+fresh data dated from today (handy before a demo). Nothing else is changed.
 
 ---
 
@@ -184,6 +185,17 @@ AUTH_SECRET=
   paid plan you can disable scale-to-zero.
 
 Apply migrations with `npm run db:migrate`.
+
+### Vercel
+
+The Vercel project's build command is `prisma migrate deploy && next build`,
+so every deploy applies pending migrations first. That is why Vercel needs
+**all three** variables — `DATABASE_URL`, `DIRECT_URL` and `AUTH_SECRET` —
+for Production and Preview. Without `DIRECT_URL` the build fails with
+`Environment variable not found: DIRECT_URL`.
+
+`vercel.json` pins the app's functions to Singapore (`sin1`), next to the
+Neon database.
 
 ---
 
