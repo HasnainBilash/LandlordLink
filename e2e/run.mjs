@@ -11,7 +11,7 @@
 // Full logs of each suite go to e2e/output/<suite>.log.
 
 import { spawn, spawnSync } from "node:child_process";
-import { readdirSync, writeFileSync } from "node:fs";
+import { openSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { connect, createServer } from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -79,11 +79,58 @@ function annotate(title, message) {
   console.log(`::error title=${property(title)}::${data(message)}`);
 }
 
-function startProcess(args) {
-  const child = spawn(process.execPath, args, { cwd: ROOT, env, stdio: "ignore" });
+// `logFile` (in e2e/output) keeps the process's output, e.g. the app's.
+function startProcess(args, logFile) {
+  const out = logFile ? openSync(outputPath(logFile), "w") : "ignore";
+  const child = spawn(process.execPath, args, { cwd: ROOT, env, stdio: ["ignore", out, out] });
   children.push(child);
   return child;
 }
+
+// What to show for a failed suite: each failed check with the lines under
+// it (what Playwright waited for, what the page showed), the browser
+// errors it reported, or — if it crashed — its error.
+function failureDetails(output) {
+  // Without terminal colour codes (Playwright's call log has them).
+  const lines = output.split(/\r?\n/).map((line) => line.replace(/\x1b\[[0-9;]*m/g, ""));
+  const details = [];
+
+  lines.forEach((line, i) => {
+    if (!line.startsWith("FAIL")) return;
+    details.push(line);
+
+    // The indented lines under it, blank ones skipped.
+    for (let j = i + 1; j <= i + 10 && /^\s/.test(lines[j] ?? ""); j++) {
+      if (lines[j].trim()) details.push(lines[j]);
+    }
+  });
+
+  const problemsAt = lines.findIndex((line) => line.startsWith("Browser console problems:"));
+  const problems = problemsAt < 0 ? [] : lines.slice(problemsAt + 1).filter((line) => /^\[/.test(line)).slice(0, 5);
+  if (problems.length > 0) details.push("Browser console problems:", ...problems);
+
+  if (details.length === 0) details.push(...lines.filter((line) => /Error/.test(line)).slice(0, 5));
+
+  return details.slice(0, 24);
+}
+
+// Errors the app logged while one suite ran (its log grows from `from`).
+function serverErrorsSince(from) {
+  try {
+    const log = readFileSync(outputPath("app.log"), "utf8").slice(from);
+    return log.split(/\r?\n/).filter((line) => /error|⨯/i.test(line)).slice(-5).map((line) => line.slice(0, 300));
+  } catch {
+    return [];
+  }
+}
+
+const appLogSize = () => {
+  try {
+    return statSync(outputPath("app.log")).size;
+  } catch {
+    return 0;
+  }
+};
 
 function runStep(label, args) {
   const result = spawnSync(process.execPath, args, { cwd: ROOT, env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
@@ -167,7 +214,7 @@ async function main() {
   }
 
   log("Starting the app…");
-  startProcess([BIN.next, "start", "-p", String(APP_PORT)]);
+  startProcess([BIN.next, "start", "-p", String(APP_PORT)], "app.log");
   await waitFor("the app", appResponds);
 
   const prisma = new PrismaClient({ datasourceUrl: env.DATABASE_URL });
@@ -193,6 +240,7 @@ async function main() {
     await prisma.$executeRawUnsafe('DELETE FROM "RateLimit"');
 
     const started = Date.now();
+    const appLogFrom = appLogSize();
     const result = spawnSync(process.execPath, [path.join(SUITES_DIR, suite)], {
       cwd: ROOT,
       env,
@@ -212,7 +260,12 @@ async function main() {
     log(`${ok ? "PASS" : "FAIL"}  ${suite.padEnd(24)} ${summary.padEnd(32)} ${Math.round((Date.now() - started) / 1000)}s`);
 
     if (!ok) {
-      const details = output.split("\n").filter((line) => /^FAIL|Error|problems/.test(line)).slice(0, 10);
+      const serverErrors = serverErrorsSince(appLogFrom);
+      const details = [
+        ...failureDetails(output),
+        ...(serverErrors.length > 0 ? ["Server errors meanwhile (e2e/output/app.log):", ...serverErrors] : []),
+      ];
+
       for (const line of details) log(`        ${line}`);
       annotate(`e2e ${suite}`, details.join("\n") || summary);
     }

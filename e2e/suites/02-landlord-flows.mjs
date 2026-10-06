@@ -2,7 +2,8 @@
 // flats, payments, approving a request, notices, write-offs, quick setup, a
 // tenant finding a flat by access code, and the phone menu. Expects freshly
 // seeded test data.
-import { BASE, launchBrowser } from "../lib/config.mjs";
+import { BASE, launchBrowser, outputPath } from "../lib/config.mjs";
+import { describePage, openFromMenu } from "../lib/page-helpers.mjs";
 
 const results = [];
 const consoleProblems = [];
@@ -12,13 +13,16 @@ function check(name, ok, detail = "") {
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${ok ? "" : `  -> ${detail}`}`);
 }
 
-async function step(name, fn) {
+// `on` is the page the step uses, described (and photographed) if it fails.
+async function step(name, fn, on = page) {
   try {
     await fn();
     check(name, true);
   } catch (error) {
-    // Up to 6 lines: Playwright lists the matching elements under the message.
-    check(name, false, String(error.message ?? error).split("\n").slice(0, 6).join("\n        "));
+    // Up to 6 lines: Playwright says what it was waiting for under the message.
+    const message = String(error.message ?? error).split("\n").slice(0, 6).join("\n        ");
+    check(name, false, `${message}\n        ${await describePage(on)}`);
+    await on.screenshot({ path: outputPath(`failed-${results.length}.png`), fullPage: true }).catch(() => {});
   }
 }
 
@@ -64,8 +68,7 @@ await step("open Test Tower A from Buildings", async () => {
 const towerAUrl = page.url();
 
 await step("edit building name via ⋯ menu", async () => {
-  await page.getByRole("button", { name: "Building actions" }).click();
-  await page.getByRole("menuitem", { name: "Edit building" }).click();
+  await openFromMenu(page, { menu: "Building actions", item: "Edit building", opens: page.getByRole("dialog") });
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Building name").fill("Test Tower A Edited");
   await dialog.getByRole("button", { name: "Save changes" }).click();
@@ -75,8 +78,7 @@ await step("edit building name via ⋯ menu", async () => {
 });
 
 await step("rename it back", async () => {
-  await page.getByRole("button", { name: "Building actions" }).click();
-  await page.getByRole("menuitem", { name: "Edit building" }).click();
+  await openFromMenu(page, { menu: "Building actions", item: "Edit building", opens: page.getByRole("dialog") });
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Building name").fill("Test Tower A");
   await dialog.getByRole("button", { name: "Save changes" }).click();
@@ -84,8 +86,7 @@ await step("rename it back", async () => {
 });
 
 await step("validation error shows in the form", async () => {
-  await page.getByRole("button", { name: "Building actions" }).click();
-  await page.getByRole("menuitem", { name: "Edit building" }).click();
+  await openFromMenu(page, { menu: "Building actions", item: "Edit building", opens: page.getByRole("dialog") });
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Address").fill("abc");
   await dialog.getByRole("button", { name: "Save changes" }).click();
@@ -128,8 +129,7 @@ await step("add flats 301–302 to floor 3", async () => {
 });
 
 await step("delete floor 3 (no tenants)", async () => {
-  await floor3.getByRole("button", { name: "Floor 3 actions" }).click();
-  await page.getByRole("menuitem", { name: "Delete floor" }).click();
+  await openFromMenu(page, { menu: "Floor 3 actions", item: "Delete floor", opens: page.getByRole("alertdialog") });
   await page.getByRole("alertdialog").getByRole("button", { name: "Delete floor" }).click();
   await toast(page, "Deleted Floor 3.").waitFor();
   await page.getByRole("heading", { name: "Floor 3", exact: true }).waitFor({ state: "detached" });
@@ -144,9 +144,7 @@ await step("re-create floor 3 after deleting it (number reuse)", async () => {
 });
 
 await step("floor with tenants can't be deleted", async () => {
-  const floor1 = page.locator("section").filter({ has: page.getByRole("heading", { name: "Floor 1", exact: true }) });
-  await floor1.getByRole("button", { name: "Floor 1 actions" }).click();
-  await page.getByRole("menuitem", { name: "Delete floor" }).click();
+  await openFromMenu(page, { menu: "Floor 1 actions", item: "Delete floor", opens: page.getByRole("alertdialog") });
   await page.getByRole("alertdialog").getByRole("button", { name: "Delete floor" }).click();
   await toast(page, "This floor still has 2 active leases").waitFor();
   await page.keyboard.press("Escape");
@@ -227,8 +225,7 @@ await step("quick setup on Test Tower B", async () => {
   await page.getByRole("link", { name: /Test Tower B/ }).click();
   await page.getByRole("heading", { name: "Test Tower B" }).waitFor();
   towerBCode = (await page.locator("p.font-mono").first().innerText()).trim();
-  await page.getByRole("button", { name: "Building actions" }).click();
-  await page.getByRole("menuitem", { name: "Quick setup" }).click();
+  await openFromMenu(page, { menu: "Building actions", item: "Quick setup", opens: page.getByRole("dialog") });
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("From floor").fill("2");
   await dialog.getByLabel("To floor").fill("3");
@@ -268,12 +265,12 @@ await step("new tenant: find Tower B by access code and request B102", async () 
   await dialog.getByRole("button", { name: "Send request" }).click();
   await toast(tenant, "Request sent for flat B102.").waitFor();
   await card.getByText("Requested").waitFor();
-});
+}, tenant);
 
 await step("tenant sees the request under My requests", async () => {
   await tenant.goto(`${BASE}/tenant/requests`);
   await tenant.getByText("Flat B102 · Test Tower B").waitFor();
-});
+}, tenant);
 
 const resident = await newPage("resident");
 
@@ -287,7 +284,7 @@ await step("tenant with a flat sees new notices, and the badge clears", async ()
   await resident.waitForTimeout(2500);
   const badge = await resident.locator("aside nav a[href='/tenant'] span.rounded-full").count();
   if (badge !== 0) throw new Error("nav badge still shown");
-});
+}, resident);
 
 // ---------------------------------------------------------------- phone
 const phone = await newPage("phone", { width: 390, height: 844 });
@@ -300,7 +297,7 @@ await step("phone: menu opens and navigates", async () => {
   await phone.getByRole("dialog").getByRole("link", { name: "Buildings" }).click();
   await phone.waitForURL(`${BASE}/dashboard/buildings`);
   await phone.getByRole("dialog").waitFor({ state: "hidden" });
-});
+}, phone);
 
 await step("phone: no horizontal scrolling on building page", async () => {
   await phone.goto(towerAUrl);
@@ -309,7 +306,7 @@ await step("phone: no horizontal scrolling on building page", async () => {
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth
   );
   if (overflow > 1) throw new Error(`page is ${overflow}px wider than the screen`);
-});
+}, phone);
 
 await browser.close();
 

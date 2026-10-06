@@ -2,6 +2,7 @@
 // still owes rent (→ past dues), late payments, registering and requesting a
 // flat right away. Saves a few screenshots. Expects freshly seeded test data.
 import { BASE, launchBrowser, outputPath } from "../lib/config.mjs";
+import { describePage, openFromMenu } from "../lib/page-helpers.mjs";
 
 const results = [];
 const consoleProblems = [];
@@ -11,13 +12,16 @@ function check(name, ok, detail = "") {
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${ok ? "" : `  -> ${detail}`}`);
 }
 
-async function step(name, fn) {
+// `on` is the page the step uses, described (and photographed) if it fails.
+async function step(name, fn, on = page) {
   try {
     await fn();
     check(name, true);
   } catch (error) {
-    // Up to 6 lines: Playwright lists the matching elements under the message.
-    check(name, false, String(error.message ?? error).split("\n").slice(0, 6).join("\n        "));
+    // Up to 6 lines: Playwright says what it was waiting for under the message.
+    const message = String(error.message ?? error).split("\n").slice(0, 6).join("\n        ");
+    check(name, false, `${message}\n        ${await describePage(on)}`);
+    await on.screenshot({ path: outputPath(`failed-${results.length}.png`), fullPage: true }).catch(() => {});
   }
 }
 
@@ -105,8 +109,7 @@ await step("delete a building with no tenants", async () => {
   await page.goto(`${BASE}/dashboard/buildings`);
   await page.getByRole("link", { name: /Test Tower B/ }).click();
   await page.getByRole("heading", { name: "Test Tower B" }).waitFor();
-  await page.getByRole("button", { name: "Building actions" }).click();
-  await page.getByRole("menuitem", { name: "Delete building" }).click();
+  await openFromMenu(page, { menu: "Building actions", item: "Delete building", opens: page.getByRole("alertdialog") });
   await page.getByRole("alertdialog").getByRole("button", { name: "Delete building" }).click();
   await toast(page, "Deleted Test Tower B.").waitFor();
   await page.waitForURL(`${BASE}/dashboard/buildings`);
@@ -116,8 +119,8 @@ await step("delete a building with no tenants", async () => {
 
 await step("building with tenants can't be deleted", async () => {
   await page.goto(towerAUrl);
-  await page.getByRole("button", { name: "Building actions" }).click();
-  await page.getByRole("menuitem", { name: "Delete building" }).click();
+  await page.getByRole("heading", { name: "Test Tower A" }).waitFor();
+  await openFromMenu(page, { menu: "Building actions", item: "Delete building", opens: page.getByRole("alertdialog") });
   await page.getByRole("alertdialog").getByRole("button", { name: "Delete building" }).click();
   await toast(page, "This building still has").waitFor();
 });
@@ -157,7 +160,7 @@ await step("register a new tenant and request a flat right away", async () => {
   await card.getByRole("button", { name: "Request" }).click();
   await tenant.getByRole("dialog").getByRole("button", { name: "Send request" }).click();
   await toast(tenant, "Request sent for flat A202.").waitFor();
-});
+}, tenant);
 
 const resident = await newPage("resident");
 
@@ -168,7 +171,7 @@ await step("screenshots: tenant home with a flat", async () => {
   await resident.getByRole("link", { name: /Flat A201/ }).click();
   await resident.getByRole("heading", { name: /Flat A201/ }).waitFor();
   await shot(resident, "10-tenant-flat");
-});
+}, resident);
 
 const phone = await newPage("phone", { width: 390, height: 844 });
 
@@ -181,7 +184,7 @@ await step("screenshots: phone", async () => {
   await phone.getByRole("button", { name: "Open menu" }).click();
   await phone.getByRole("dialog").waitFor();
   await phone.screenshot({ path: outputPath("13-phone-menu.png") });
-});
+}, phone);
 
 await browser.close();
 

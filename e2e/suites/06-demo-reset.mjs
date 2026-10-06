@@ -1,5 +1,6 @@
 // Nightly demo reset: endpoint auth, data restored, sessions survive.
 import { BASE, CRON_SECRET, launchBrowser } from "../lib/config.mjs";
+import { openFromMenu } from "../lib/page-helpers.mjs";
 
 
 const results = [];
@@ -74,8 +75,7 @@ await step("visitor renames a demo building", async () => {
   await landlord.getByRole("link", { name: /Green Valley Apartments/ }).click();
   await landlord.getByRole("heading", { name: "Green Valley Apartments" }).waitFor();
   oldBuildingUrl = landlord.url();
-  await landlord.getByRole("button", { name: "Building actions" }).click();
-  await landlord.getByRole("menuitem", { name: "Edit building" }).click();
+  await openFromMenu(landlord, { menu: "Building actions", item: "Edit building", opens: landlord.getByRole("dialog") });
   const dialog = landlord.getByRole("dialog");
   await dialog.getByLabel("Building name").fill("Messed Up By A Visitor");
   await dialog.getByRole("button", { name: "Save changes" }).click();
