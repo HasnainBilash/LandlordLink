@@ -162,13 +162,26 @@ Goal: a chat where the landlord types a task ("record 12,000 rent for flat
 203", "who owes me money?"); the assistant reads the data it needs and, for
 anything that changes data, shows a confirmation popup before doing it.
 
-- [ ] Provider: Gemini free tier behind a small provider interface, so it
-      can be swapped later.
-- [ ] Read tools (buildings, flats, dues, requests) and write tools
-      (record payment, approve/reject request, post notice), each write
-      confirmed by the landlord first.
-- [ ] Data minimisation (no NIDs or phone numbers sent), per-user usage
-      limits.
+**Part A — answers questions (read-only)**
+- [x] Provider: Gemini free tier behind a small provider interface
+      (`src/lib/ai`); models tried in order, the next one answers when one
+      is busy, rate limited or retired.
+- [x] Read tools: overview, who owes (this month vs earlier), find tenant,
+      flat details, flats, requests, past dues, notices, recent activity.
+      All scoped to the signed-in landlord by name/number, never by ID.
+- [x] "Ask AI" side panel on every landlord page; English or Bangla.
+- [x] Data minimisation (no NIDs, phone numbers or emails sent);
+      daily message limit per landlord (`AssistantUsage` table).
+
+**Part B — makes changes, with confirmation**
+- [x] Write tools: record payment, approve request, reject request, post
+      notice. They only prepare a change (`AssistantAction`, pending for
+      15 minutes); the landlord confirms it in a popup.
+- [x] Confirming runs the app's own server action (same checks, same
+      activity log), exactly once — claiming the change is one atomic
+      update, so double clicks and replays are refused.
+- [x] A payment without a month is split over the oldest unpaid months.
+- [x] Chat opens at the latest message, with a "jump to latest" button.
 
 ---
 

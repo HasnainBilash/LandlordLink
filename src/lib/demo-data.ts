@@ -753,6 +753,9 @@ async function removeDemoData(tx: Tx) {
 
   await tx.activityLog.deleteMany({ where: { user: { email: { in: PUBLIC_DEMO_EMAILS } } } });
 
+  // Changes visitors asked the AI assistant to prepare.
+  await tx.assistantAction.deleteMany({ where: { user: { email: { in: PUBLIC_DEMO_EMAILS } } } });
+
   // Every other demo tenant (their accounts cascade to everything they
   // own), plus tenants left by older versions of this seed, which used
   // @example.com addresses and "DEMO-" national IDs.

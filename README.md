@@ -61,6 +61,22 @@ simplification pass. See `docs/01_ROADMAP.md` for what's next
 
 - Activity Logs (building-scoped + a global landlord feed)
 
+### AI assistant (landlords)
+
+- "Ask AI" panel on every landlord page: ask about rent, dues, flats,
+  requests, notices and activity in English or Bangla
+- Answers come from the landlord's own data through lookups scoped to
+  their buildings; contact details and national IDs are never sent to the
+  model
+- Makes changes too — record a payment (split over the oldest unpaid
+  months when it covers several), approve or reject a request, post a
+  notice — but only prepares them: the landlord sees the exact details in
+  a confirmation popup, and the change runs once, through the app's own
+  server actions, only after they confirm (`AssistantAction`)
+- Google Gemini (free tier) behind a small provider interface; falls back
+  to the next model when one is busy
+- Daily message limit per landlord
+
 ---
 
 ## Tech Stack
@@ -185,7 +201,21 @@ DIRECT_URL=
 AUTH_SECRET=
 # Any long random string; Vercel Cron sends it to /api/cron/reset-demo
 CRON_SECRET=
+# AI assistant — free key from https://aistudio.google.com ("Get API key")
+GEMINI_API_KEY=
 ```
+
+Optional settings for the assistant:
+
+| Variable | Default | What it does |
+|---|---|---|
+| `GEMINI_MODEL` | `gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.8-flash` | Models to try, in order; the next one answers when one is busy |
+| `ASSISTANT_DAILY_LIMIT` | `50` | Messages per landlord per day |
+| `ASSISTANT_DEMO_DAILY_LIMIT` | `100` | Messages per day for the shared demo landlord |
+
+Without `GEMINI_API_KEY` the app works as usual and the assistant says it
+isn't set up. On Gemini's free tier Google may use the messages to improve
+its products — fine for a demo; use a paid key for real tenants' data.
 
 ### Neon performance notes
 
@@ -206,6 +236,8 @@ so every deploy applies pending migrations first. That is why Vercel needs
 `DATABASE_URL`, `DIRECT_URL` and `AUTH_SECRET` for Production and
 Preview. Without `DIRECT_URL` the build fails with
 `Environment variable not found: DIRECT_URL`.
+
+For the AI assistant add `GEMINI_API_KEY` (Production and Preview).
 
 It also needs `CRON_SECRET` (Production) for the nightly demo reset:
 Vercel sends it with every cron call, and the endpoint refuses calls

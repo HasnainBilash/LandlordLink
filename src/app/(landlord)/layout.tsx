@@ -22,6 +22,7 @@ export default function LandlordLayout({ children }: LandlordLayoutProps) {
   return (
     <AppShell
       homeHref="/dashboard"
+      assistant
       nav={[
         { href: "/dashboard", label: "Home", icon: "home", exact: true },
         { href: "/dashboard/buildings", label: "Buildings", icon: "buildings" },

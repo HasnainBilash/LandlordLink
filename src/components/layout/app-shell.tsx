@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { auth } from "@/auth";
 import { isDemoEmail } from "@/lib/demo";
 
+import { AssistantPanel } from "@/components/assistant/assistant-panel";
 import { Logo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
@@ -15,12 +16,14 @@ import { UserMenu } from "./user-menu";
 type AppShellProps = {
   nav: NavItem[];
   homeHref: string;
+  // Show the AI assistant (landlords only).
+  assistant?: boolean;
   children: ReactNode;
 };
 
 // Shared layout for landlords and tenants: sidebar on desktop, a slide-out
 // menu on phones, and the theme switch + account menu in the header.
-export async function AppShell({ nav, homeHref, children }: AppShellProps) {
+export async function AppShell({ nav, homeHref, assistant = false, children }: AppShellProps) {
   const session = await auth();
   const isDemo = isDemoEmail(session?.user?.email);
 
@@ -56,6 +59,7 @@ export async function AppShell({ nav, homeHref, children }: AppShellProps) {
           </div>
 
           <div className="ml-auto flex items-center gap-1">
+            {assistant && <AssistantPanel />}
             <ThemeToggle />
             <UserMenu
               name={session?.user?.name ?? "User"}

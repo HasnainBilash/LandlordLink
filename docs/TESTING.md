@@ -169,11 +169,14 @@ automatically), last month OVERDUE (the app updated it automatically),
 ### Before deploying Phase 3 to Vercel
 
 1. **Make a secret for the nightly reset.** In a terminal run
-   `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-   and copy the long line it prints.
+   `node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))"`
+   and copy the 64 characters it prints.
 2. **Add it to Vercel.** Vercel → your project → **Settings → Environment
-   Variables** → **Add New** → Key `CRON_SECRET`, Value: the line you
-   copied, Environment: **Production** → **Save**.
+   Variables** → **Add New** → Key `CRON_SECRET`, Value: the characters you
+   copied, Environment: **Production** → **Save**. Make sure the value
+   has **no line break after it** (the cursor should stop right after the
+   last character) — otherwise the deploy fails with "contains characters
+   that are not valid in HTTP headers".
 3. **Create the demo tenant on the live database.** With `.env` pointing
    at the live database, run `npm run db:seed-demo` once. (It rebuilds
    the demo landlord's data and adds `nusrat.demo@example.com`; without

@@ -17,6 +17,7 @@
     "@auth/core": "^0.41.2",
     "@auth/prisma-adapter": "^2.11.2",
     "@base-ui/react": "^1.6.0",
+    "@google/genai": "^2.27.0",
     "@hookform/resolvers": "^5.4.0",
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
