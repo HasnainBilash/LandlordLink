@@ -19,14 +19,16 @@ buttons — one click, no sign-up. The demo resets every night.
 |---|---|---|
 | ![Floors and flats of a building, with tenants, rent and overdue flags](docs/screenshots/building.png) | ![The assistant has prepared a payment split over two months; nothing changes until the landlord confirms](docs/screenshots/assistant-confirm.png) | ![Reports in dark mode: occupancy, money collected per month, rent due vs. collected](docs/screenshots/reports-dark.png) |
 
+![Reports → Insights: overdue money, share of rent collected, rent missed while flats stood empty, expected rent, and who owes for how long](docs/screenshots/insights.png)
+
 ---
 
 ## Project Status
 
-🟢 Production-ready. The upgrade plan's five phases (speed and correctness,
+🟢 Production-ready. The upgrade plan's phases (speed and correctness,
 simpler structure, modern design and public demo, AI assistant, production
-hardening) are complete — see `docs/07_UPGRADE_PLAN.md`. New features are
-planned next.
+hardening, insights and delivery) are complete — see
+`docs/07_UPGRADE_PLAN.md`.
 
 ---
 
@@ -61,6 +63,19 @@ planned next.
 - Past dues: unpaid rent of former tenants, paid late or written off
 - Reports (occupancy, revenue, outstanding balances, monthly trends)
 - Money in taka with lakh grouping (৳2,79,950); dates in Bangladesh time
+
+### Insights and downloads
+
+- Reports → Insights: what's owed and for how long (this month, 1, 2, 3+
+  months overdue) per tenant; each tenant's payment habits (months paid on
+  time, usual payment day, rating); how much of each month's rent was
+  paid; empty flats and the rent they've missed; average days between
+  tenants; expected rent for the next 3 months
+- Day-by-day trends of money owed and occupancy, from a nightly data
+  pipeline (see [Scheduled Jobs](#scheduled-jobs))
+- The AI assistant answers these questions too ("who usually pays late?")
+- CSV downloads for a spreadsheet or an accountant: rent roll, payments,
+  and every unpaid rent and bill
 
 ### Communication
 
@@ -135,6 +150,9 @@ planned next.
   no `X-Powered-By` (`src/proxy.ts`, `next.config.ts`).
 - **Scheduled jobs** only accept Vercel's `Authorization: Bearer
   <CRON_SECRET>`, compared in constant time.
+- **CSV downloads** are for landlords only and hold only their own data;
+  text that a spreadsheet would run as a formula (a tenant named
+  `=HYPERLINK(…)`) is written as plain text.
 - **AI assistant:** sees only the landlord's own data, without phone
   numbers, emails or national IDs. Changes it prepares run only after the
   landlord confirms — exactly once (claimed in one atomic update, so double
@@ -158,13 +176,16 @@ Vercel Cron runs these every day (`vercel.json`):
 | Job | Time (Bangladesh) | What it does |
 |---|---|---|
 | `/api/cron/bill-rent` | ~06:10 | Creates the month's rent for every active lease and marks unpaid rent from past months overdue |
+| `/api/cron/daily-stats` | ~07:10 | Records how every building stood at the end of yesterday (flats, occupied, owed, received) and rebuilds any missing day of the last 90 from the payment history — the data behind the trend charts |
 | `/api/cron/reset-demo` | ~03:00 | Rebuilds the public demo |
 | `/api/cron/cleanup` | ~03:30 | Deletes expired rate-limit counters, assistant usage older than 30 days and prepared changes older than 90 days |
 
-On Vercel's Hobby plan a job runs at some point within its scheduled hour.
+On Vercel's Hobby plan a job runs at some point within its scheduled hour
+(so the data job, an hour later, always runs after the rent billing).
 Rent is also billed when a lease starts, and pages that show rent run a
 quick check (one round of reads; it writes only if the job hasn't caught
-up yet), so a late job never shows stale rent.
+up yet), so a late job never shows stale rent. The data job rebuilds days
+it missed, so a failed run leaves no gap in the trends.
 
 ---
 
@@ -255,9 +276,11 @@ Apply migrations with `npm run db:migrate`.
 ## Testing
 
 **Unit tests** — `npm test` (Vitest, about a second): rent months and the
-late-join rule, payment status, money and date formatting, the assistant's
-month parsing, tool loop and model fallback (with a stand-in model), cron
-authentication, the settings check and rate-limit helpers.
+late-join rule, payment status, money and date formatting, the insight
+calculations (aging, payment habits, vacancy, forecast, a building on any
+past day), the CSV writer, the assistant's month parsing, tool loop and
+model fallback (with a stand-in model), cron authentication, the settings
+check and rate-limit helpers.
 
 **End-to-end tests** — `npm run test:e2e` starts a throwaway in-memory
 PostgreSQL (PGlite), creates the tables with the real migrations, builds
@@ -266,14 +289,16 @@ headless browser:
 
 | Suite | What it checks |
 |---|---|
-| `01-read-paths` | Every page for both roles, the expected numbers, nothing leaked (password hashes, other landlords' data, access codes) |
+| `01-read-paths` | Every page for both roles, the expected numbers, nothing leaked (password hashes, other landlords' data, access codes), the CSV downloads |
 | `02-landlord-flows` | Adding and editing buildings, floors and flats, payments, approvals, notices, write-offs, quick setup, a tenant requesting a flat |
 | `03-more-flows` | Deletes that must be blocked, ending a lease that still owes, late payments, sign-up and request |
 | `04-assistant` | The AI panel with an offline stand-in model: answers, limits, access rules, changes that wait for confirmation |
-| `05-security` | Headers and CSP nonce, sign-in and sign-up limits, sign-in timing, scheduled-job authentication |
+| `05-security` | Headers and CSP nonce, sign-in and sign-up limits, sign-in timing, scheduled-job authentication, health check |
 | `06-demo-reset` | The nightly demo reset; signed-in visitors stay signed in |
-| `07-phone-layout` | No sideways scrolling at phone width, on 27 pages |
+| `07-phone-layout` | No sideways scrolling at phone width, on 28 pages |
 | `08-rent-billing` | The nightly rent billing and the page-view check |
+| `09-insights` | Every number on Reports → Insights against the seeded data, the trends, the download menu |
+| `10-daily-stats` | The nightly data job: who may run it, rebuilding missing days exactly, running it twice |
 
 It needs a browser: run `npx playwright-core install chromium` once, or
 use one you have with `E2E_BROWSER_CHANNEL=msedge` (or `chrome`).
@@ -307,6 +332,17 @@ Environment variables (Vercel → **Settings → Environment Variables**):
 The scheduled jobs appear under **Settings → Cron Jobs**, where each one
 can also be run by hand (**Run**). `vercel.json` pins the app's functions
 to Singapore (`sin1`), next to the Neon database.
+
+**Release only what passed the tests.** Vercel → your project →
+**Settings → Build and Deployment → Deployment Checks** → **Add Checks** →
+**GitHub** → select `Lint, types, unit tests, build` and `End-to-end
+suites`. A push still builds right away, but the new version goes live
+only after both CI jobs pass ([Vercel docs](https://vercel.com/docs/deployment-checks)).
+
+**Health check:** `/api/health` answers `{"ok":true}` without touching the
+database — use it for uptime monitors. `/api/health?check=db` also checks
+the database connection (don't poll that one: it would keep Neon's free
+tier awake).
 
 ---
 

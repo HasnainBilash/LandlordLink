@@ -1,6 +1,8 @@
 // Read paths over HTTP: every landlord and tenant page opens, shows the
 // expected numbers for freshly seeded test data, and leaks nothing (password
-// hashes, other landlords' buildings, access codes to tenants).
+// hashes, other landlords' buildings, access codes to tenants), plus the CSV
+// downloads.
+import { BASE } from "../lib/config.mjs";
 import { login, get, plain } from "../lib/harness.mjs";
 
 const results = [];
@@ -101,8 +103,67 @@ r = await get(landlord, "/dashboard/reports?tab=past-dues");
 t = plain(r.text);
 check("past dues tab", r.status === 200 && has(t, "Ended Tenant") && has(t, "৳12,000") && has(t, "Write off"));
 
+// Insights opens (its numbers are checked in a browser by 09-insights:
+// the streamed HTML isn't in reading order).
+r = await get(landlord, "/dashboard/reports?tab=insights");
+t = plain(r.text);
+check("insights tab 200", r.status === 200 && has(t, "৳28,500") && has(t, "Overdue Tenant"), r.status);
+
 r = await get(landlord, "/dashboard/reports?tab=activity");
 check("activity tab", r.status === 200);
+
+// CSV downloads (Reports → Download)
+r = await get(landlord, "/api/export/rent-roll");
+const csvLines = r.text.trim().split("\r\n");
+// text() drops the byte-order mark, so look at the raw bytes for it.
+const csvBytes = new Uint8Array(
+  await (
+    await fetch(`${BASE}/api/export/rent-roll`, {
+      headers: { cookie: [...landlord.entries()].map(([name, value]) => `${name}=${value}`).join("; ") },
+    })
+  ).arrayBuffer()
+);
+check(
+  "rent roll: a CSV file",
+  r.status === 200 &&
+    csvBytes[0] === 0xef && csvBytes[1] === 0xbb && csvBytes[2] === 0xbf &&
+    r.headers.get("content-type")?.startsWith("text/csv") &&
+    /^attachment; filename="landlordlink-rent-roll-\d{4}-\d{2}-\d{2}\.csv"$/.test(r.headers.get("content-disposition") ?? ""),
+  `${r.status} ${r.headers.get("content-type")} ${r.headers.get("content-disposition")}`
+);
+check(
+  "rent roll: current tenants with rent, deposit, owed and overdue",
+  csvLines[0] === "Building,Floor,Flat,Tenant,Moved in,Monthly rent,Deposit,Owes now,Of which overdue" &&
+    csvLines.length === 4 &&
+    /^Test Tower A,Floor 1,A102,Overdue Tenant,\d{4}-\d{2}-\d{2},18000,36000,45000,27000$/.test(csvLines[2]) &&
+    /^Test Tower A,Floor 2,A201,Partial Tenant,\d{4}-\d{2}-\d{2},20000,40000,11500,1500$/.test(csvLines[3]),
+  csvLines.join(" | ")
+);
+
+r = await get(landlord, "/api/export/owed");
+check(
+  "what's owed: every unpaid item, former tenants too",
+  r.status === 200 &&
+    r.text.includes("Building,Flat,Tenant,Tenant is,For,Due,Amount,Paid,Owed,Months overdue") &&
+    /\r\nTest Tower B,B101,Ended Tenant,Former,Rent — \w+ \d{4},\d{4}-\d{2}-\d{2},12000,0,12000,1\r\n/.test(r.text) &&
+    /\r\nTest Tower A,A102,Overdue Tenant,Current,Rent — \w+ \d{4},\d{4}-\d{2}-\d{2},18000,9000,9000,2\r\n/.test(r.text) &&
+    r.text.trim().split("\r\n").length === 7,
+  r.text.slice(0, 600)
+);
+
+r = await get(landlord, "/api/export/payments");
+check(
+  "payments: dated, with what they paid for and the reference",
+  r.status === 200 &&
+    r.text.includes("Date,Building,Flat,Tenant,For,Amount,Reference") &&
+    /\r\n\d{4}-\d{2}-\d{2},Test Tower A,A102,Overdue Tenant,Rent — \w+ \d{4},9000,TEST\r\n/.test(r.text),
+  r.text.slice(0, 600)
+);
+
+r = await get(landlord, "/api/export/everything");
+check("unknown download → 404", r.status === 404, r.status);
+r = await get(null, "/api/export/rent-roll");
+check("download signed out → 401", r.status === 401, r.status);
 
 // Legacy redirects
 for (const [from, to] of [
@@ -124,9 +185,20 @@ check("landlord2 blocked from Tower A", /NEXT_HTTP_ERROR_FALLBACK;404/.test(r.te
 r = await get(other, `/dashboard/flats/${flatIds.A102}`);
 t = plain(r.text);
 check("landlord2 blocked from flat A102", /NEXT_HTTP_ERROR_FALLBACK;404/.test(r.text) && !r.text.includes("Overdue Tenant"), t.slice(0, 300));
+r = await get(other, "/api/export/owed");
+check("landlord2's downloads hold only their own data", r.status === 200 && !r.text.includes("Test Tower") && !r.text.includes("Overdue Tenant"), r.text.slice(0, 300));
+r = await get(other, "/dashboard/reports?tab=insights");
+t = plain(r.text);
+check(
+  "landlord2's insights show only their own flats",
+  r.status === 200 && has(t, "Flat X101") && !has(t, "Test Tower") && !has(t, "Overdue Tenant"),
+  t.slice(0, 300)
+);
 
 // ---------- Tenants ----------
 const paid = await login("paid@example.com");
+r = await get(paid, "/api/export/payments");
+check("tenants can't download landlord reports (403)", r.status === 403, r.status);
 r = await get(paid, "/tenant");
 t = plain(r.text);
 check("paid tenant home", r.status === 200 && has(t, "Nothing — all paid"));

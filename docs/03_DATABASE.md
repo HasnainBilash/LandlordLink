@@ -121,6 +121,9 @@ AssistantAction         (changes the AI assistant prepared, waiting for
 RateLimit               (counters for sign-in, sign-up, join request and
                          assistant limits)
 
+BuildingDailyStat       (each building's numbers at the end of each day —
+                         the data behind the Insights trend charts)
+
 ```
 
 ---
@@ -883,6 +886,29 @@ Expired rows are deleted by the nightly cleanup job.
 
 ---
 
+# BuildingDailyStat
+
+Purpose
+
+How each building stood at the end of each day (a Bangladesh calendar
+day, `day` = `yyyy-mm-dd`): `flats`, `occupied` flats, money `owed`
+(unpaid rent and bills of current and former tenants, not written off)
+and money `collected` that day. Unique `buildingId` + `day`. Read by the
+trend charts in Reports → Insights.
+
+Written By
+
+`src/lib/daily-stats.ts` — the nightly data job (`/api/cron/daily-stats`,
+an hour after rent billing). Every day is computed from the lease and
+payment history (`buildingOnDay` in `src/lib/insights.ts`), so the job
+records yesterday and also rebuilds any of the last 90 days that are
+missing; the demo reset and the test seed rebuild their 90 days the same
+way. Rent has no write-off date, so a written-off rent stops counting
+from its lease's end date. Rows older than 400 days are deleted by the
+nightly cleanup job.
+
+---
+
 # Soft Deletes
 
 Several models include
@@ -920,6 +946,12 @@ User
 │
 
 └── TenantProfile
+
+Building
+
+↓
+
+BuildingDailyStat
 
 ↓
 

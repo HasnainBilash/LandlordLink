@@ -105,6 +105,18 @@ check("ambiguous tenant → asks which one", (r.body.actions ?? []).length === 0
 r = await ask(demo, "post notice to Atlantis: hello");
 check("unknown building → nothing prepared", (r.body.actions ?? []).length === 0 && r.text.includes("No building called"), r.text);
 
+// --- Insights: analysis questions ---
+r = await ask(demo, "Who usually pays late?");
+check(
+  "insights: payment habits with ratings",
+  r.status === 200 && r.text.includes('"paymentHabits"') && r.text.includes('"rating":"often late"') && r.text.includes('"rating":"reliable"'),
+  r.text.slice(0, 300)
+);
+check("insights: forecast and empty flats", /"expectedNext3Months":"৳[\d,]+"/.test(r.text) && r.text.includes('"emptyFlats"'), r.text.slice(0, 300));
+check("insights: no emails or phone numbers", !/@example\.com|\+880/.test(r.text), r.text.slice(0, 300));
+r = await ask(other, "Who pays late?");
+check("insights: another landlord sees only their own", r.status === 200 && r.text.includes("X101") && !r.text.includes("Overdue Tenant"), r.text.slice(0, 300));
+
 // --- UI ---
 const problems = [];
 const browser = await launchBrowser();

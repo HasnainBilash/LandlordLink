@@ -88,6 +88,7 @@ async function signedIn(role) {
   await visit(page, "/dashboard/requests");
   await visit(page, "/dashboard/requests?status=ALL", "requests: all");
   await visit(page, "/dashboard/reports");
+  await visit(page, "/dashboard/reports?tab=insights", "reports: insights");
   await visit(page, "/dashboard/reports?tab=past-dues", "reports: past dues");
   await visit(page, "/dashboard/reports?tab=activity", "reports: activity");
   await visit(page, "/dashboard/flats/missing", "404 in app");

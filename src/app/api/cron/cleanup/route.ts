@@ -13,13 +13,15 @@ export async function GET(request: Request) {
 
   const now = Date.now();
 
-  const [rateLimits, assistantUsage, assistantActions] = await prisma.$transaction([
+  const [rateLimits, assistantUsage, assistantActions, dailyStats] = await prisma.$transaction([
     // Expired rate-limit windows.
     prisma.rateLimit.deleteMany({ where: { resetAt: { lt: new Date(now) } } }),
     // Daily assistant counters older than a month.
     prisma.assistantUsage.deleteMany({ where: { day: { lt: toDateInputValue(new Date(now - 30 * DAY_MS)) } } }),
     // Changes the assistant prepared, kept 90 days as a record.
     prisma.assistantAction.deleteMany({ where: { createdAt: { lt: new Date(now - 90 * DAY_MS) } } }),
+    // Daily building numbers, kept a little over a year for the trends.
+    prisma.buildingDailyStat.deleteMany({ where: { day: { lt: toDateInputValue(new Date(now - 400 * DAY_MS)) } } }),
   ]);
 
   return Response.json({
@@ -28,6 +30,7 @@ export async function GET(request: Request) {
       rateLimits: rateLimits.count,
       assistantUsage: assistantUsage.count,
       assistantActions: assistantActions.count,
+      dailyStats: dailyStats.count,
     },
   });
 }

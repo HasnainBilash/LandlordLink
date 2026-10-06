@@ -16,7 +16,8 @@ async function step(name, fn) {
     await fn();
     check(name, true);
   } catch (error) {
-    check(name, false, String(error.message ?? error).split("\n")[0]);
+    // Up to 6 lines: Playwright lists the matching elements under the message.
+    check(name, false, String(error.message ?? error).split("\n").slice(0, 6).join("\n        "));
   }
 }
 

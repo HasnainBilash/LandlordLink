@@ -80,6 +80,20 @@ export function RequestStatusBadge({ status }: { status: RequestStatus }) {
   return <ToneBadge tone={tone}>{label}</ToneBadge>;
 }
 
+export type PunctualityRating = "reliable" | "sometimes-late" | "often-late" | "new";
+
+const PUNCTUALITY: Record<PunctualityRating, { label: string; tone: Tone }> = {
+  reliable: { label: "Reliable", tone: "success" },
+  "sometimes-late": { label: "Sometimes late", tone: "warning" },
+  "often-late": { label: "Often late", tone: "danger" },
+  new: { label: "New tenant", tone: "muted" },
+};
+
+export function PunctualityBadge({ rating }: { rating: PunctualityRating }) {
+  const { label, tone } = PUNCTUALITY[rating];
+  return <ToneBadge tone={tone}>{label}</ToneBadge>;
+}
+
 export function HiddenBadge() {
   return <ToneBadge tone="muted">Hidden from tenants</ToneBadge>;
 }

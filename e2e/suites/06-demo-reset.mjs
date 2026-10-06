@@ -10,7 +10,7 @@ async function step(name, fn) {
     console.log(`PASS  ${name}`);
   } catch (error) {
     results.push({ name, ok: false });
-    console.log(`FAIL  ${name}  -> ${error.message.split("\n")[0]}`);
+    console.log(`FAIL  ${name}  -> ${error.message.split("\n").slice(0, 6).join("\n        ")}`);
   }
 }
 

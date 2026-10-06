@@ -17,7 +17,8 @@ async function step(name, fn) {
     await fn();
     check(name, true);
   } catch (error) {
-    check(name, false, String(error.message ?? error).split("\n")[0]);
+    // Up to 6 lines: Playwright lists the matching elements under the message.
+    check(name, false, String(error.message ?? error).split("\n").slice(0, 6).join("\n        "));
   }
 }
 
@@ -112,12 +113,15 @@ await step("add flats 301–302 to floor 3", async () => {
   await floor3.getByRole("button", { name: "Add flats" }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("tab", { name: "Several flats" }).click();
-  await dialog.getByLabel("From flat number").fill("301");
-  await dialog.getByLabel("To flat number").fill("302");
-  await dialog.getByLabel("Bedrooms").fill("2");
-  await dialog.getByLabel("Bathrooms").fill("1");
-  await dialog.getByLabel("Rent / month (৳)").fill("15000");
-  await dialog.getByRole("button", { name: "Create flats" }).click();
+  // Only this tab's form: the "One flat" form, with the same field names,
+  // can still be on its way out for a moment after switching.
+  const panel = dialog.getByRole("tabpanel", { name: "Several flats" });
+  await panel.getByLabel("From flat number").fill("301");
+  await panel.getByLabel("To flat number").fill("302");
+  await panel.getByLabel("Bedrooms").fill("2");
+  await panel.getByLabel("Bathrooms").fill("1");
+  await panel.getByLabel("Rent / month (৳)").fill("15000");
+  await panel.getByRole("button", { name: "Create flats" }).click();
   await toast(page, "Added 2 flats.").waitFor();
   await floor3.getByText("Flat 301").waitFor();
   await floor3.getByText("Flat 302").waitFor();

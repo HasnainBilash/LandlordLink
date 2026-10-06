@@ -13,6 +13,7 @@
 import { PrismaClient, UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+import { recordDailyStats } from "../src/lib/daily-stats";
 import { generateAccessCode } from "../src/lib/generate-access-code";
 
 const prisma = new PrismaClient();
@@ -160,14 +161,19 @@ async function main() {
       city: "Dhaka",
       ownerId: landlord.user.id,
       accessCode: await uniqueAccessCode(),
+      createdAt: monthStart(6),
     },
   });
 
   const floorA1 = await prisma.floor.create({ data: { buildingId: towerA.id, floorNumber: 1 } });
   const floorA2 = await prisma.floor.create({ data: { buildingId: towerA.id, floorNumber: 2 } });
 
+  // Added 6 months ago — before any of the leases below — so the time flats
+  // stood empty (Reports → Insights) is realistic.
   const flat = (floorId: string, flatNumber: string, rent: number, status: "VACANT" | "OCCUPIED" | "MAINTENANCE") =>
-    prisma.flat.create({ data: { floorId, flatNumber, bedrooms: 2, bathrooms: 2, monthlyRent: rent, status } });
+    prisma.flat.create({
+      data: { floorId, flatNumber, bedrooms: 2, bathrooms: 2, monthlyRent: rent, status, createdAt: monthStart(6) },
+    });
 
   const a101 = await flat(floorA1.id, "A101", 15000, "OCCUPIED");
   const a102 = await flat(floorA1.id, "A102", 18000, "OCCUPIED");
@@ -241,6 +247,8 @@ async function main() {
       city: "Dhaka",
       ownerId: landlord.user.id,
       accessCode: await uniqueAccessCode(),
+      // A minute after Tower A: buildings are listed newest first.
+      createdAt: new Date(monthStart(6).getTime() + 60_000),
     },
   });
 
@@ -267,10 +275,15 @@ async function main() {
       city: "Dhaka",
       ownerId: otherLandlord.user.id,
       accessCode: await uniqueAccessCode(),
+      createdAt: monthStart(6),
     },
   });
   const otherFloor = await prisma.floor.create({ data: { buildingId: otherTower.id, floorNumber: 1 } });
   await flat(otherFloor.id, "X101", 30000, "VACANT");
+
+  // Daily numbers for the trend charts in Reports → Insights, rebuilt from
+  // the history above (the nightly job does this on the live site).
+  for (const owner of [landlord, otherLandlord]) await recordDailyStats({ db: prisma, ownerId: owner.user.id });
 
   console.log("\nTest accounts ready. Password for all: " + PASSWORD);
   for (const account of Object.values(ACCOUNTS)) console.log(`  ${account.email}`);

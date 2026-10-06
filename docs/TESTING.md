@@ -166,6 +166,22 @@ automatically), last month OVERDUE (the app updated it automatically),
 5. **Badges:** the landlord Requests badge shows 1 (before you approve
    anything); `partial@example.com` sees a Notices badge.
 
+### Before deploying Phase 6 to Vercel
+
+1. **(Recommended) Release only what passed the tests.** Vercel → your
+   project → **Settings → Build and Deployment → Deployment Checks** →
+   **Add Checks** → **GitHub** → select `Lint, types, unit tests, build`
+   and `End-to-end suites` → **Save**. From then on a push still builds
+   right away, but goes live only after both GitHub checks pass (about 6
+   minutes).
+2. Push and wait for the deploy. The build adds the new table for the
+   daily numbers by itself.
+3. Vercel → **Settings → Cron Jobs** now lists four jobs. Click **Run**
+   next to `/api/cron/daily-stats` once: it fills in the last 90 days, so
+   the trend charts on Reports → Insights show right away. Then **Run**
+   next to `/api/cron/reset-demo`, so the demo gets its new data (tenants
+   who pay on different days).
+
 ### Before deploying Phases 4 and 5 to Vercel
 
 1. **Add the AI key.** Vercel → your project → **Settings → Environment

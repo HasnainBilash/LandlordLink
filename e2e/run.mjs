@@ -58,12 +58,25 @@ const PREPARE = {
   "04-": ["tests"],
   "05-": ["tests"],
   "08-": ["tests"],
+  "09-": ["tests"],
+  "10-": ["tests"],
 };
 
 const children = [];
 
 function log(message) {
   console.log(message);
+}
+
+// On GitHub Actions a failure also becomes an annotation on the run's page,
+// readable there (and through the API) without opening the logs.
+function annotate(title, message) {
+  if (process.env.GITHUB_ACTIONS !== "true") return;
+
+  const data = (text) => text.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+  const property = (text) => data(text).replace(/:/g, "%3A").replace(/,/g, "%2C");
+
+  console.log(`::error title=${property(title)}::${data(message)}`);
 }
 
 function startProcess(args) {
@@ -201,6 +214,7 @@ async function main() {
     if (!ok) {
       const details = output.split("\n").filter((line) => /^FAIL|Error|problems/.test(line)).slice(0, 10);
       for (const line of details) log(`        ${line}`);
+      annotate(`e2e ${suite}`, details.join("\n") || summary);
     }
   }
 
@@ -221,6 +235,7 @@ main()
   })
   .catch((error) => {
     console.error(`\n${error.message}`);
+    annotate("e2e runner", error.message.slice(0, 2000));
     process.exitCode = 1;
   })
   .finally(stopAll);

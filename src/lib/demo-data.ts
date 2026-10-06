@@ -15,6 +15,7 @@
 import bcrypt from "bcryptjs";
 import type { FlatStatus, Prisma, PrismaClient } from "@prisma/client";
 
+import { recordDailyStats } from "./daily-stats";
 import { DEMO_LANDLORD, DEMO_PASSWORD, DEMO_TENANT } from "./demo";
 import { formatMoney } from "./format";
 import { generateAccessCode } from "./generate-access-code";
@@ -104,6 +105,11 @@ const TENANT_NAMES = [
   "Tariqul Islam", "Moushumi Rahman",
 ];
 
+// Tenants who lived in a flat before its current tenant (one flat per
+// building), so the demo can show how long flats stand empty between
+// tenants. Not in TENANT_NAMES, so they never clash with anyone else.
+const PREVIOUS_TENANT_NAMES = ["Fahim Morshed", "Nadia Kabir", "Arif Hossen"];
+
 // The public demo tenant has their own fixed name; keep it unique.
 const OTHER_TENANT_NAMES = TENANT_NAMES.filter((name) => name !== DEMO_TENANT.name);
 
@@ -124,17 +130,22 @@ type OccupiedBehavior = {
     | "overdue-2"
     | "partial-current"
     | "utility-overdue";
+  // Usual days after the 1st until the rent is paid, and (optionally)
+  // every how many months it's paid a month late instead — so Reports →
+  // Insights has reliable and late payers to show.
+  payDelay: number;
+  lateEvery?: number;
 };
 
 const OCCUPIED_PATTERN: OccupiedBehavior[] = [
-  { startMonthsAgo: 6, deposit: true, rentDelta: 0, outcome: "clean" },
-  { startMonthsAgo: 3, deposit: false, rentDelta: 500, outcome: "clean" },
-  { startMonthsAgo: 1, deposit: false, rentDelta: 0, outcome: "clean-recent-pending" },
-  { startMonthsAgo: 4, deposit: true, rentDelta: -1000, outcome: "overdue-1" },
-  { startMonthsAgo: 5, deposit: false, rentDelta: 0, outcome: "utility-overdue" },
-  { startMonthsAgo: 7, deposit: true, rentDelta: 1500, outcome: "overdue-2" },
-  { startMonthsAgo: 2, deposit: false, rentDelta: 0, outcome: "partial-current" },
-  { startMonthsAgo: 8, deposit: true, rentDelta: -500, outcome: "clean" },
+  { startMonthsAgo: 6, deposit: true, rentDelta: 0, outcome: "clean", payDelay: 2 },
+  { startMonthsAgo: 3, deposit: false, rentDelta: 500, outcome: "clean", payDelay: 6 },
+  { startMonthsAgo: 1, deposit: false, rentDelta: 0, outcome: "clean-recent-pending", payDelay: 4 },
+  { startMonthsAgo: 4, deposit: true, rentDelta: -1000, outcome: "overdue-1", payDelay: 12, lateEvery: 2 },
+  { startMonthsAgo: 5, deposit: false, rentDelta: 0, outcome: "utility-overdue", payDelay: 9, lateEvery: 3 },
+  { startMonthsAgo: 7, deposit: true, rentDelta: 1500, outcome: "overdue-2", payDelay: 18, lateEvery: 2 },
+  { startMonthsAgo: 2, deposit: false, rentDelta: 0, outcome: "partial-current", payDelay: 4 },
+  { startMonthsAgo: 8, deposit: true, rentDelta: -500, outcome: "clean", payDelay: 3, lateEvery: 4 },
 ];
 
 type ActivityRow = {
@@ -217,10 +228,17 @@ export async function resetDemoData(prisma: PrismaClient): Promise<DemoSummary> 
 
   // One transaction: visitors see the old demo until the new one is
   // complete, and a failure leaves the old demo in place.
-  return prisma.$transaction((tx) => rebuild(tx, passwordHash), {
+  const summary = await prisma.$transaction((tx) => rebuild(tx, passwordHash), {
     maxWait: 10_000,
     timeout: 120_000,
   });
+
+  // The demo's buildings are new, so their daily numbers (the trend charts
+  // in Reports → Insights) are rebuilt from the generated history.
+  const landlord = await prisma.user.findUnique({ where: { email: DEMO_LANDLORD.email }, select: { id: true } });
+  if (landlord) await recordDailyStats({ db: prisma, ownerId: landlord.id });
+
+  return summary;
 }
 
 async function rebuild(tx: Tx, passwordHash: string): Promise<DemoSummary> {
@@ -406,12 +424,18 @@ async function rebuild(tx: Tx, passwordHash: string): Promise<DemoSummary> {
     throw new Error("Could not generate a unique access code.");
   }
 
+  // Flats that get a previous tenant (added after all the current ones).
+  const relets: { flatId: string; buildingId: string; rent: number; movedInAt: Date }[] = [];
   let demoTenantCreated = false;
   let overdueCount = 0;
   let occupiedCount = 0;
   let vacantCount = 0;
 
-  for (const spec of BUILDINGS) {
+  for (const [buildingIndex, spec] of BUILDINGS.entries()) {
+    // Added months ago (a minute apart, so they keep their order) — flats
+    // that never had a tenant then show a realistic time empty.
+    const buildingAddedAt = new Date(monthsAgo(9, 2).getTime() + buildingIndex * 60_000);
+
     const building = await tx.building.create({
       data: {
         name: spec.name,
@@ -421,6 +445,7 @@ async function rebuild(tx: Tx, passwordHash: string): Promise<DemoSummary> {
         status: "ACTIVE",
         ownerId: landlord.id,
         accessCode: await createAccessCode(),
+        createdAt: buildingAddedAt,
       },
     });
 
@@ -431,10 +456,11 @@ async function rebuild(tx: Tx, passwordHash: string): Promise<DemoSummary> {
       entity: "Building",
       entityId: building.id,
       description: `Created building "${building.name}".`,
-      createdAt: monthsAgo(9, 2),
+      createdAt: buildingAddedAt,
     });
 
     let occupiedIndexInBuilding = 0;
+    let reletChosen = false;
     let vacantFlatsPendingRequest = 0;
 
     for (let floorNumber = 1; floorNumber <= spec.floors.length; floorNumber++) {
@@ -449,6 +475,21 @@ async function rebuild(tx: Tx, passwordHash: string): Promise<DemoSummary> {
         const flatNumber = `${floorNumber}0${unit}`;
         // Realistic taka rents: higher floors and 3-bed flats cost more.
         const baseRent = spec.baseRent + (floorNumber - 1) * 1000 + (unit % 2 === 0 ? 1500 : 0);
+        const behavior =
+          OCCUPIED_PATTERN[(occupiedIndexInBuilding + spec.behaviorOffset) % OCCUPIED_PATTERN.length];
+        // The first vacant flat in each building had a tenant who moved out.
+        const hadFormerTenant = status === "VACANT" && vacantFlatsPendingRequest === 0;
+
+        // When the landlord added the flat to the app, which decides how
+        // long it shows as empty in Reports → Insights: a few days before
+        // its (first) tenant moved in, otherwise some weeks ago.
+        const variety = (floorNumber * 31 + unit * 17) % 60;
+        const addedAt =
+          status === "OCCUPIED"
+            ? new Date(monthsAgo(behavior.startMonthsAgo, 3).getTime() - ((floorNumber + unit) % 4) * 3 * DAY_MS)
+            : hadFormerTenant
+              ? new Date(monthsAgo(7, 3).getTime() - 5 * DAY_MS)
+              : daysAgo(25 + variety);
 
         const flat = await tx.flat.create({
           data: {
@@ -458,12 +499,11 @@ async function rebuild(tx: Tx, passwordHash: string): Promise<DemoSummary> {
             monthlyRent: baseRent,
             status,
             floorId: floor.id,
+            createdAt: new Date(Math.max(addedAt.getTime(), buildingAddedAt.getTime())),
           },
         });
 
         if (status === "OCCUPIED") {
-          const behavior =
-            OCCUPIED_PATTERN[(occupiedIndexInBuilding + spec.behaviorOffset) % OCCUPIED_PATTERN.length];
           occupiedIndexInBuilding += 1;
           occupiedCount += 1;
 
@@ -478,6 +518,12 @@ async function rebuild(tx: Tx, passwordHash: string): Promise<DemoSummary> {
           );
 
           const startDate = monthsAgo(behavior.startMonthsAgo, 3);
+
+          // One flat per building had a tenant before this one.
+          if (!reletChosen && !isDemoTenant && behavior.startMonthsAgo >= 2 && behavior.startMonthsAgo <= 4) {
+            relets.push({ flatId: flat.id, buildingId: building.id, rent: baseRent, movedInAt: startDate });
+            reletChosen = true;
+          }
 
           const joinRequest = await tx.joinRequest.create({
             data: {
@@ -551,7 +597,12 @@ async function rebuild(tx: Tx, passwordHash: string): Promise<DemoSummary> {
               finalStatus = "OVERDUE";
             }
 
-            const paidAt = paidDate(dueDate(month, year), 3, floorNumber * 7 + unit * 3 + month);
+            const paidLate = behavior.lateEvery !== undefined && i % behavior.lateEvery === behavior.lateEvery - 1;
+            const paidAt = paidDate(
+              dueDate(month, year),
+              behavior.payDelay + (paidLate ? 31 : 0),
+              floorNumber * 7 + unit * 3 + month
+            );
 
             const rent = await tx.rent.create({
               data: {
@@ -658,7 +709,7 @@ async function rebuild(tx: Tx, passwordHash: string): Promise<DemoSummary> {
 
           // The first vacant flat in each building also has a former
           // tenant and a rejected request, for realistic history.
-          if (vacantFlatsPendingRequest === 1) {
+          if (hadFormerTenant) {
             await addFormerTenant(
               spec.formerTenant,
               { id: flat.id, flatNumber, rent: baseRent },
@@ -730,6 +781,64 @@ async function rebuild(tx: Tx, passwordHash: string): Promise<DemoSummary> {
       description: `Published notice "${reminder.title}".`,
       createdAt: reminderDate,
     });
+  }
+
+  // The tenants before them: moved in five months earlier, paid every
+  // month, and moved out 12–26 days before the current tenant moved in.
+  for (const [i, relet] of relets.entries()) {
+    const previous = await createTenant(PREVIOUS_TENANT_NAMES[i % PREVIOUS_TENANT_NAMES.length]);
+    const startDate = new Date(relet.movedInAt);
+    startDate.setUTCMonth(startDate.getUTCMonth() - 5);
+    const endDate = new Date(relet.movedInAt.getTime() - (12 + i * 7) * DAY_MS);
+    const rent = Math.max(8000, relet.rent - 1000);
+
+    // The flat was added before its first tenant moved in.
+    await tx.flat.update({
+      where: { id: relet.flatId },
+      data: { createdAt: new Date(startDate.getTime() - 4 * DAY_MS) },
+    });
+
+    await tx.joinRequest.create({
+      data: {
+        tenantId: previous.id,
+        buildingId: relet.buildingId,
+        flatId: relet.flatId,
+        status: "ENDED",
+        message: "Hello, I'd like to rent this flat from the start of next month.",
+        createdAt: startDate,
+        updatedAt: endDate,
+      },
+    });
+
+    const lease = await tx.lease.create({
+      data: {
+        tenantId: previous.id,
+        flatId: relet.flatId,
+        startDate,
+        endDate,
+        monthlyRent: rent,
+        deposit: rent,
+        status: "ENDED",
+      },
+    });
+
+    for (const { month, year } of monthsBetween(startDate, endDate)) {
+      const due = dueDate(month, year);
+
+      await tx.rent.create({
+        data: {
+          leaseId: lease.id,
+          month,
+          year,
+          amount: rent,
+          dueDate: due,
+          status: "PAID",
+          payments: {
+            create: { paymentType: "RENT", amount: rent, paidAt: new Date(due.getTime() + (3 + i) * DAY_MS + 4 * HOUR_MS) },
+          },
+        },
+      });
+    }
   }
 
   await tx.activityLog.createMany({ data: activityRows });

@@ -16,6 +16,7 @@ import { getPastDues } from "@/actions/rent/get-past-dues";
 import { ActivityLogList } from "@/components/activity-log/activity-log-list";
 import { BuildingPerformanceChart } from "@/components/analytics/building-performance-chart";
 import { OccupancyBar } from "@/components/analytics/occupancy-bar";
+import { ReportDownloads } from "@/components/analytics/report-downloads";
 import { RevenueTrendChart } from "@/components/analytics/revenue-trend-chart";
 import { BillingTable } from "@/components/billing/billing-table";
 import { WriteOffButton } from "@/components/billing/write-off-button";
@@ -37,6 +38,8 @@ import { TabNav } from "@/components/ui/tab-nav";
 import { formatDate, formatFlatNumber, formatFloor, formatMoney, pluralize } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+import { InsightsTab } from "./insights-tab";
+
 // Shared styles for the report tables.
 const TH = "py-2.5 pr-4 text-xs font-medium tracking-wide uppercase";
 const TD = "py-3 pr-4 tabular-nums";
@@ -46,7 +49,7 @@ type PageProps = {
   searchParams: Promise<{ tab?: string }>;
 };
 
-const TABS = ["overview", "past-dues", "activity"] as const;
+const TABS = ["overview", "insights", "past-dues", "activity"] as const;
 type Tab = (typeof TABS)[number];
 
 export default async function ReportsPage({ searchParams }: PageProps) {
@@ -58,6 +61,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
       <PageHeader
         title="Reports"
         description="Money, occupancy and history across all of your buildings."
+        actions={<ReportDownloads />}
       />
 
       <TabNav
@@ -67,12 +71,14 @@ export default async function ReportsPage({ searchParams }: PageProps) {
         }
         tabs={[
           { value: "overview", label: "Overview" },
+          { value: "insights", label: "Insights" },
           { value: "past-dues", label: "Past dues" },
           { value: "activity", label: "Activity" },
         ]}
       />
 
       {tab === "overview" && <Overview />}
+      {tab === "insights" && <InsightsTab />}
       {tab === "past-dues" && <PastDues />}
       {tab === "activity" && <Activity />}
     </>

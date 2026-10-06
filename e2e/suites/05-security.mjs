@@ -121,8 +121,21 @@ for (let i = 1; i <= 6; i++) {
 check("6th sign-up from one network in an hour is refused", limited);
 await browser.close();
 
+// --- Health check ---
+let res = await fetch(`${BASE}/api/health`);
+let health = await res.json().catch(() => ({}));
+check(
+  "health: up, without touching the database",
+  res.status === 200 && health.ok === true && typeof health.version === "string" && !("database" in health) &&
+    (res.headers.get("cache-control") ?? "").includes("no-store"),
+  JSON.stringify(health)
+);
+res = await fetch(`${BASE}/api/health?check=db`);
+health = await res.json().catch(() => ({}));
+check("health with check=db: database reachable", res.status === 200 && health.database?.ok === true, JSON.stringify(health));
+
 // --- Nightly cleanup job ---
-let res = await fetch(`${BASE}/api/cron/cleanup`);
+res = await fetch(`${BASE}/api/cron/cleanup`);
 check("cleanup without the secret → 401", res.status === 401, res.status);
 res = await fetch(`${BASE}/api/cron/cleanup`, { headers: { authorization: `Bearer ${CRON_SECRET}` } });
 const body = await res.json().catch(() => ({}));

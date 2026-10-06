@@ -123,6 +123,7 @@ model Building {
   joinRequests JoinRequest[]
   notices      Notice[]
   activityLogs ActivityLog[]
+  dailyStats   BuildingDailyStat[]
 
   @@index([ownerId])
   @@index([status])
@@ -502,4 +503,30 @@ model RateLimit {
   resetAt DateTime
 
   @@index([resetAt])
+}
+
+// One row per building per day (Bangladesh calendar day): how the building
+// stood at the end of that day. Written by the nightly data job
+// (/api/cron/daily-stats), which also rebuilds missing days from the
+// payment and lease history; read by the trend charts in Reports → Insights.
+model BuildingDailyStat {
+  id String @id @default(cuid())
+
+  buildingId String
+  day        String // yyyy-mm-dd, Bangladesh time
+
+  flats    Int
+  occupied Int
+
+  // Unpaid rent and bills (current and former tenants, not written off).
+  owed      Decimal @db.Decimal(12, 2)
+  // Payments received during the day.
+  collected Decimal @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+
+  building Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+
+  @@unique([buildingId, day])
+  @@index([day])
 }

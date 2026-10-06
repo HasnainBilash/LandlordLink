@@ -12,6 +12,7 @@ import {
   formatMoney,
   formatTime,
 } from "@/lib/format";
+import { loadInsights } from "@/lib/insights-data";
 import { getOutstandingByLease } from "@/lib/lease-balance";
 import { remainingBalance, sumPayments } from "@/lib/payment-status";
 import { prisma } from "@/lib/prisma";
@@ -553,6 +554,65 @@ export const READ_TOOLS = [
           by: log.user.name,
           building: log.building?.name,
         })),
+      };
+    },
+  }),
+
+  defineTool({
+    name: "get_insights",
+    description:
+      "Analysis of the landlord's rent (Reports → Insights): what current tenants owe split by how long it's overdue, each current tenant's payment habits over the last 12 months (months paid on time, usual payment day, rating), how much of each month's rent was paid, empty flats and the rent they've missed, the average days between tenants, and expected rent for the next 3 months. Use it for questions like who usually pays late, who has owed the longest, what empty flats cost, or how much rent to expect.",
+    args: z.object({}),
+    async run(_args, { ownerId }) {
+      const insights = await loadInsights(ownerId);
+      const percent = (value: number | null) => (value === null ? "no rent due" : `${Math.round(value * 100)}%`);
+
+      return {
+        owedByCurrentTenants: {
+          total: formatMoney(insights.aging.total),
+          overdueFromEarlierMonths: formatMoney(insights.aging.overdue),
+          byAge: insights.aging.buckets.map((bucket) => ({ age: bucket.label, amount: formatMoney(bucket.amount) })),
+          oldestFirst: insights.aging.debtors.slice(0, 15).map((debtor) => ({
+            tenant: debtor.tenant,
+            flat: `${debtor.flat}, ${debtor.building}`,
+            owes: formatMoney(debtor.total),
+            owingSince: monthLabel(debtor.oldestDue.getUTCMonth() + 1, debtor.oldestDue.getUTCFullYear()),
+          })),
+        },
+        formerTenantsOwe: formatMoney(insights.aging.formerTenantsOwe),
+        paymentHabits: insights.habits.slice(0, 30).map((habit) => ({
+          tenant: habit.tenant,
+          flat: `${habit.flat}, ${habit.building}`,
+          paidOnTime: `${habit.onTime} of ${habit.months} completed months`,
+          usualPaymentDay: habit.typicalPayDay === null ? null : `day ${habit.typicalPayDay} after rent is due on the 1st`,
+          rating: { reliable: "reliable", "sometimes-late": "sometimes late", "often-late": "often late", new: "new tenant (under 3 months)" }[habit.rating],
+          owesNow: formatMoney(habit.owes),
+        })),
+        rentPaidByMonth: insights.collection.map((month) => ({
+          month: month.isCurrent ? `${month.label} (so far)` : month.label,
+          due: formatMoney(month.due),
+          paid: formatMoney(Math.round(month.collected)),
+          share: percent(month.rate),
+        })),
+        emptyFlats: insights.vacancy.emptyFlats.slice(0, 20).map((flat) => ({
+          flat: `${flat.flat}, ${flat.building}`,
+          status: flat.status === "MAINTENANCE" ? "under maintenance" : "vacant",
+          emptySince: formatDate(flat.since),
+          rentMissed: formatMoney(Math.round(flat.missedSoFar)),
+        })),
+        rentMissedWhileEmptyLast12Months: formatMoney(Math.round(insights.vacancy.missedLastYear)),
+        averageDaysBetweenTenants:
+          insights.vacancy.averageReletDays === null ? null : Math.round(insights.vacancy.averageReletDays),
+        forecast: {
+          expectedPerMonth: formatMoney(Math.round(insights.forecast.perMonth)),
+          expectedNext3Months: formatMoney(Math.round(insights.forecast.total)),
+          currentLeasesPerMonth: formatMoney(insights.forecast.fullRent),
+          basedOn:
+            insights.forecast.basisMonths > 0
+              ? `${percent(insights.forecast.recentRate)} of rent due was paid over the last ${insights.forecast.basisMonths} months`
+              : "no full month of history yet, so it assumes all rent is paid",
+          extraPerMonthIfVacantFlatsLet: formatMoney(insights.forecast.ifAllLet),
+        },
       };
     },
   }),

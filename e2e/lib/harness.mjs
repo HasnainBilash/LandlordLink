@@ -45,7 +45,7 @@ export async function get(jar, path) {
     redirect: "manual",
   });
   const text = await res.text();
-  return { status: res.status, location: res.headers.get("location"), text, ms: Date.now() - started };
+  return { status: res.status, location: res.headers.get("location"), headers: res.headers, text, ms: Date.now() - started };
 }
 
 // Strip tags so text checks are easy.

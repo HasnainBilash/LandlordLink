@@ -7,6 +7,10 @@
       "schedule": "10 0 * * *"
     },
     {
+      "path": "/api/cron/daily-stats",
+      "schedule": "10 1 * * *"
+    },
+    {
       "path": "/api/cron/reset-demo",
       "schedule": "0 21 * * *"
     },

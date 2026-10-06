@@ -233,6 +233,55 @@ Goal: safe to deploy and maintain.
 
 ---
 
-## After Phase 5
+## Phase 6 — Insights & Delivery
+
+Goal: help landlords understand their numbers — who owes and for how
+long, who pays late, what empty flats cost, what's coming in — and make
+every release safe: a new version goes live only after the tests pass.
+
+Decided against for now: **Redis**. Rate limits already work in Postgres,
+each landlord's data is small, and caching money figures risks showing
+stale numbers. Worth adding for a job queue (SMS/email reminders) or much
+more traffic — Upstash Redis on Vercel, behind the existing `rateLimit()`.
+
+**Part A — CI/CD**
+- [x] CI green again: a browser test that was timing-sensitive (two tab
+      panels on the page for a moment) is fixed; failures show more detail.
+- [x] Failing end-to-end checks appear as annotations on the GitHub run,
+      readable without opening the logs.
+- [x] GitHub actions updated to current versions (Node 24).
+- [x] `/api/health` for uptime monitors (no database query) and
+      `/api/health?check=db` to check a deploy's database connection.
+- [ ] Owner: Vercel Deployment Checks, so production deploys go live only
+      after both CI jobs pass (README → Deploying).
+
+**Part B — Data analysis: an Insights tab in Reports**
+- [x] Arrears aging: what's owed, split by how long it's overdue, per tenant
+      (tenants who only owe this month's rent summed in one line).
+- [x] Payment punctuality per tenant: months paid on time, usual payment
+      day, a rating (reliable, sometimes late, often late, new tenant).
+- [x] Collection rate per rent month, last 12 months.
+- [x] Vacancies: days empty and rent missed; average time to re-let a flat.
+- [x] Rent forecast for the next 3 months, from current leases and the
+      recent collection rate.
+- [x] The assistant can answer these questions (`get_insights`).
+- [x] The calculations are plain functions with unit tests
+      (`src/lib/insights.ts`); a browser suite checks every number.
+- [x] Demo tenants pay on different days and some pay late; demo and test
+      flats have realistic dates.
+
+**Part C — Data pipeline**
+- [x] Nightly snapshot of every building (flats, occupied flats, money
+      owed, money received) in a `BuildingDailyStat` table, by Bangladesh
+      day (`/api/cron/daily-stats`, an hour after rent billing). Days are
+      computed from the lease and payment history, so missed days are
+      rebuilt; the demo reset and the test seed rebuild 90 days.
+- [x] "Owed, day by day" and "Occupancy, day by day" charts.
+- [x] CSV downloads: rent roll, payments, what's owed — safe against
+      formula injection.
+
+---
+
+## After Phase 6
 
 Discuss and plan new features (separate plan).

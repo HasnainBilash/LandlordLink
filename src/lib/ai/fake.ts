@@ -30,6 +30,7 @@ function pickTool(message: string): ToolCall | null {
     return { id: "fake", name: "get_flat", args: { flat: flat[1], building: flat[2]?.replace(/[?.!]+$/, "") } };
   }
 
+  if (/late|habit|forecast|expect|empty|insight/.test(text)) return { id: "fake", name: "get_insights", args: {} };
   if (/owe|unpaid|paid/.test(text)) return { id: "fake", name: "list_unpaid", args: {} };
   if (/request/.test(text)) return { id: "fake", name: "list_requests", args: {} };
   if (/notice/.test(text)) return { id: "fake", name: "list_notices", args: {} };
