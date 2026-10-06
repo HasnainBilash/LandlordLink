@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 import { approveJoinRequestSchema } from "@/lib/validations/lease";
 import { logActivity } from "@/lib/log-activity";
+import { reconcileRentForLease } from "@/lib/reconcile-rent";
 import { revalidateApp } from "@/lib/revalidate";
 
 import { ActionResult } from "@/types/action-result";
@@ -134,6 +135,9 @@ export async function approveJoinRequest(
 
     throw error;
   }
+
+  // Bill the lease's rent right away rather than waiting for the nightly job.
+  await reconcileRentForLease(lease.id);
 
   await logActivity({
     userId: session.user.id,

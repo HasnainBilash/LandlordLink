@@ -20,8 +20,26 @@ const legacyRedirects = [
   ["/tenant/flats/:flatId/request", "/tenant/buildings"],
 ] as const;
 
+// Sent with every response. The Content-Security-Policy is set per request
+// in src/proxy.ts (it needs a fresh nonce).
+const securityHeaders = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), browsing-topics=()" },
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+];
+
 const nextConfig: NextConfig = {
   reactCompiler: true,
+
+  // Don't advertise the framework.
+  poweredByHeader: false,
+
+  async headers() {
+    return [{ source: "/:path*", headers: securityHeaders }];
+  },
 
   async redirects() {
     return legacyRedirects.map(([source, destination]) => ({

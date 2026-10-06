@@ -189,16 +189,47 @@ anything that changes data, shows a confirmation popup before doing it.
 
 Goal: safe to deploy and maintain.
 
-- [ ] Speed pass, including a daily job that bills rent instead of doing it
-      on page views.
-- [ ] Environment variables validated at startup (clear error if missing).
-- [ ] Login rate limiting.
-- [ ] Unit tests (Vitest) for rent, payment status and money logic.
-- [ ] End-to-end smoke tests (Playwright): register, login, create
-      building, approve tenant, record payment.
-- [ ] GitHub Actions CI: lint, typecheck, test, build.
-- [ ] Security headers; error monitoring hook (Sentry-ready).
-- [ ] README: setup, Neon, deploy, seed/demo account.
+- [x] Speed: rent is billed by a nightly job (`/api/cron/bill-rent`, just
+      after a new rent month starts) and when a lease starts. Pages that
+      show rent now run one round of read queries as a safety net — before,
+      three queries one after another, one of them a write, on every view.
+      The remaining slow first request is Neon's free tier waking up
+      (README → Neon notes).
+- [x] Settings validated at startup (`src/lib/env.ts`): the server stops
+      with a list of what's missing or malformed.
+- [x] Rate limits stored in Postgres, shared by all serverless instances:
+      wrong passwords per email and network, sign-ins per network, sign-ups
+      per network, join requests per tenant, assistant messages per minute.
+- [x] Sign-in takes as long for unknown emails as for wrong passwords (no
+      account discovery); bcrypt cost 12; emails stored in lowercase;
+      input length limits.
+- [x] Unit tests (Vitest): rent months, payment status, money and dates,
+      the assistant's month parsing, tool loop and model fallback, cron
+      auth, settings check, rate-limit helpers.
+- [x] End-to-end tests (`npm run test:e2e`): a throwaway PGlite database
+      with the real migrations, a production build, and 8 suites — read
+      paths, landlord flows (register, login, buildings, approve tenant,
+      record payment, …), more flows, assistant, security, demo reset,
+      phone layout, rent billing.
+- [x] GitHub Actions CI: lint, typecheck, unit tests, build, then the
+      end-to-end suites.
+- [x] Security headers: Content Security Policy with a fresh nonce per
+      request, HSTS, nosniff, X-Frame-Options, Referrer-Policy,
+      Permissions-Policy, COOP; no X-Powered-By. Scheduled jobs check
+      `CRON_SECRET` in constant time.
+- [x] Error monitoring hook: every server error is logged as one JSON line
+      (`onRequestError` in `src/instrumentation.ts`, where Sentry would
+      plug in); a global error page for crashes in the root layout.
+- [x] Nightly cleanup of expired rate-limit counters and old assistant data.
+- [x] Next.js 16.3.8 and Auth.js beta.32 (published security advisories).
+- [x] README: setup, Neon, deploy, demo accounts, security, scheduled
+      jobs, testing, screenshots.
+
+### Also fixed in Phase 5
+
+- [x] The assistant didn't understand "Sept 2026" (the app's own
+      abbreviation) as a month — found by the new unit tests.
+- [x] Approving a request now bills the new lease's rent right away.
 
 ---
 

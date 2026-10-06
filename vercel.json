@@ -3,8 +3,16 @@
   "regions": ["sin1"],
   "crons": [
     {
+      "path": "/api/cron/bill-rent",
+      "schedule": "10 0 * * *"
+    },
+    {
       "path": "/api/cron/reset-demo",
       "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup",
+      "schedule": "30 21 * * *"
     }
   ]
 }

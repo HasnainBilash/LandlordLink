@@ -5,7 +5,11 @@ import { prisma } from "@/lib/prisma";
 
 import { createJoinRequestSchema } from "@/lib/validations/join-request";
 import { logActivity } from "@/lib/log-activity";
+import { rateLimit, waitText } from "@/lib/rate-limit";
 import { revalidateApp } from "@/lib/revalidate";
+
+// Requests a tenant may send per hour.
+const REQUESTS_PER_HOUR = 10;
 
 import { ActionResult } from "@/types/action-result";
 
@@ -19,6 +23,16 @@ export async function createJoinRequest(
     return {
       success: false,
       message: "Unauthorized.",
+      errors: {},
+    };
+  }
+
+  const limit = await rateLimit(`join-request:${session.user.id}`, REQUESTS_PER_HOUR, 60 * 60);
+
+  if (!limit.allowed) {
+    return {
+      success: false,
+      message: `You've sent a lot of requests recently. Please try again in ${waitText(limit.retryAfterSeconds)}.`,
       errors: {},
     };
   }

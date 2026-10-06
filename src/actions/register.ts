@@ -5,6 +5,10 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations/auth";
 import { logActivity } from "@/lib/log-activity";
+import { clientIp, rateLimit, waitText } from "@/lib/rate-limit";
+
+// New accounts per IP per hour.
+const SIGN_UPS_PER_HOUR = 5;
 
 export type RegisterState = {
   success: boolean;
@@ -51,10 +55,27 @@ export async function registerUser(
   };
   }
 
+  const limit = await rateLimit(`sign-up:${await clientIp()}`, SIGN_UPS_PER_HOUR, 60 * 60);
+
+  if (!limit.allowed) {
+    return {
+      success: false,
+      values: {
+        name: values.name,
+        email: values.email,
+        role: values.role as "LANDLORD" | "TENANT",
+      },
+      errors: {
+        general: [`Too many new accounts from your network. Please try again in ${waitText(limit.retryAfterSeconds)}.`],
+      },
+    };
+  }
+
   try {
-    const existingUser = await prisma.user.findUnique({
+    // Also catches accounts registered before emails were lowercased.
+    const existingUser = await prisma.user.findFirst({
       where: {
-        email: parsed.data.email,
+        email: { equals: parsed.data.email, mode: "insensitive" },
       },
     });
 

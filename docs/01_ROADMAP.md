@@ -212,12 +212,12 @@ Status
 
 Features
 
-- Monthly Rent — auto-generated per active Lease, reconciled on read (no
-  scheduled job). No day-level proration — a billable month is always
-  charged in full — but a join-date cutoff decides whether the join
-  month itself is billable: joining on the 20th or earlier bills that
-  month, joining after the 20th skips it and billing starts the
-  following month
+- Monthly Rent — auto-generated per active Lease by a nightly job, with
+  a check on read as a safety net. No day-level proration — a billable
+  month is always charged in full — but a join-date cutoff decides
+  whether the join month itself is billable: joining on the 20th or
+  earlier bills that month, joining after the 20th skips it and billing
+  starts the following month
 - Rent Status — `PENDING` → `OVERDUE` once the due month has fully
   passed unpaid; → `PARTIAL`/`PAID` by recording a real payment via
   Payment History's `recordPayment` action (supports partial payments)

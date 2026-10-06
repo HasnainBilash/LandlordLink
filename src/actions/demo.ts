@@ -23,9 +23,13 @@ export async function startDemo(role: string): Promise<ActionResult> {
   } catch (error) {
     // A successful sign-in throws Next's redirect, which must propagate.
     if (error instanceof AuthError) {
+      const rateLimited = "code" in error && error.code === "rate_limited";
+
       return {
         success: false,
-        message: "The demo isn't available right now. Please try again in a moment.",
+        message: rateLimited
+          ? "Too many sign-ins from your network. Please wait a few minutes and try again."
+          : "The demo isn't available right now. Please try again in a moment.",
         errors: {},
       };
     }

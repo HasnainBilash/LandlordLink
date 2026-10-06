@@ -166,6 +166,20 @@ automatically), last month OVERDUE (the app updated it automatically),
 5. **Badges:** the landlord Requests badge shows 1 (before you approve
    anything); `partial@example.com` sees a Notices badge.
 
+### Before deploying Phases 4 and 5 to Vercel
+
+1. **Add the AI key.** Vercel → your project → **Settings → Environment
+   Variables** → **Add New** → Key `GEMINI_API_KEY`, Value: your key from
+   aistudio.google.com, Environments: **Production** and **Preview** →
+   **Save**. As with `CRON_SECRET`, no line break after the value.
+2. Push and wait for the deploy. The build applies the new database
+   changes by itself (assistant usage, assistant changes, rate limits) —
+   nothing to run by hand.
+3. Vercel → **Settings → Cron Jobs** should now list three jobs:
+   `/api/cron/bill-rent`, `/api/cron/reset-demo` and `/api/cron/cleanup`.
+   Click **Run** next to `bill-rent` and `cleanup` once — each should
+   finish without an error.
+
 ### Before deploying Phase 3 to Vercel
 
 1. **Make a secret for the nightly reset.** In a terminal run

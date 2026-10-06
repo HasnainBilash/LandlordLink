@@ -113,6 +113,14 @@ Notice                  (schema + application complete — Building-scoped
 ActivityLog             (schema + application complete — representative
                          instrumentation, not literally every action)
 
+AssistantUsage          (AI assistant messages per landlord per day)
+
+AssistantAction         (changes the AI assistant prepared, waiting for
+                         or done after the landlord's confirmation)
+
+RateLimit               (counters for sign-in, sign-up, join request and
+                         assistant limits)
+
 ```
 
 ---
@@ -207,7 +215,12 @@ PAID
 
 OVERDUE
 
+WRITTEN_OFF
+
 ```
+
+`WRITTEN_OFF`: a former tenant's unpaid balance the landlord gave up on
+(Reports → Past dues).
 
 ---
 
@@ -252,6 +265,24 @@ ALL
 TENANTS
 
 LANDLORDS
+
+```
+
+---
+
+## AssistantActionStatus
+
+```
+
+PENDING
+
+RUNNING
+
+DONE
+
+FAILED
+
+CANCELLED
 
 ```
 
@@ -601,16 +632,24 @@ This prevents duplicate rent entries for the same month.
 
 Generated
 
-Not by a scheduled job — there is no background job runner in this
-project. Instead, `src/lib/reconcile-rent.ts` runs reconciliation
-on-demand, from every landlord/tenant action that reads Rent data
-(`getRentsForLease`, `getOutstandingBalanceForBuilding`,
-`getTenantFlatView`). For an `ACTIVE` Lease, it backfills a `PENDING`
-Rent row (`amount` = the Lease's `monthlyRent`, `dueDate` = the 1st of
-that month) for every billable month up to the current month that
-doesn't already have one — using `createMany` with
-`skipDuplicates: true`, the same pattern the Floors/Flats bulk-create
-actions use.
+By `src/lib/reconcile-rent.ts`, at three moments:
+
+- every night, for every active Lease — the `/api/cron/bill-rent` job
+  (Vercel Cron, just after a new month starts in UTC);
+- when a Lease starts (approving a Join Request);
+- as a safety net, from every landlord/tenant action that reads Rent data
+  (`getRentsForLease`, `getOutstandingBalanceForBuilding`,
+  `getTenantFlatView`, the reports and the AI assistant). This is one
+  round of read queries that normally finds nothing to do; it writes only
+  when the nightly job hasn't caught up yet.
+
+For an `ACTIVE` Lease, it backfills a `PENDING` Rent row (`amount` = the
+Lease's `monthlyRent`, `dueDate` = the 1st of that month) for every
+billable month up to the current month that doesn't already have one —
+using `createMany` with `skipDuplicates: true`, the same pattern the
+Floors/Flats bulk-create actions use — and flips unpaid `PENDING` rows of
+past months to `OVERDUE`. The number of queries doesn't grow with the
+number of Leases.
 
 No day-level proration — a billable month is always charged in full.
 Instead, a join-date cutoff decides whether the join month itself is
@@ -797,6 +836,53 @@ mutating action in the codebase.
 
 ---
 
+# AssistantUsage
+
+Purpose
+
+How many AI assistant messages a landlord sent on a day, for the daily
+limit. One row per user per day (unique `userId` + `day`, where `day` is
+`yyyy-mm-dd` in Bangladesh time). Rows older than 30 days are deleted by
+the nightly `/api/cron/cleanup` job.
+
+---
+
+# AssistantAction
+
+Purpose
+
+A change the AI assistant prepared — record a payment, approve or reject
+a request, post a notice — that runs only after the landlord confirms it.
+
+Fields
+
+- `kind` — which change (`record_payment`, `approve_request`,
+  `reject_request`, `post_notice`).
+- `summary` — what the landlord was shown in the confirmation popup.
+- `payload` — the resolved IDs and values used to run it.
+- `status` — `PENDING` → `RUNNING` → `DONE` / `FAILED`, or `CANCELLED`.
+  Confirming claims the row with one atomic update
+  (`PENDING` and not expired → `RUNNING`), so a change can't run twice.
+- `expiresAt` — 15 minutes after it was prepared; older pending changes
+  can't be confirmed.
+- `result` — the app's message after running it.
+
+Rows older than 90 days are deleted by the nightly cleanup job.
+
+---
+
+# RateLimit
+
+Purpose
+
+Fixed-window counters for rate limits (`src/lib/rate-limit.ts`), kept in
+the database so every serverless instance sees the same counts. `key`
+names the limit and who it applies to (e.g. `sign-up:<ip>`); `count` and
+`resetAt` are updated in one atomic `INSERT … ON CONFLICT DO UPDATE`.
+Expired rows are deleted by the nightly cleanup job.
+
+---
+
 # Soft Deletes
 
 Several models include
@@ -826,6 +912,10 @@ User
 │
 
 ├── ActivityLog
+
+│
+
+├── AssistantUsage, AssistantAction
 
 │
 

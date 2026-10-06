@@ -488,3 +488,18 @@ enum AssistantActionStatus {
   FAILED
   CANCELLED
 }
+
+// ======================================================
+// RATE LIMITS
+// ======================================================
+
+// Fixed-window counters for rate limits (failed sign-ins, sign-ups,
+// requests…), shared by every server instance. Old rows are cleared by the
+// nightly cleanup job.
+model RateLimit {
+  key     String   @id
+  count   Int
+  resetAt DateTime
+
+  @@index([resetAt])
+}

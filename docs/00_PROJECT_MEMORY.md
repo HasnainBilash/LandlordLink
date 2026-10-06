@@ -357,13 +357,15 @@ Architecture v2.0 is considered frozen unless intentionally revised.
 
 ### Rent Management
 
-- No scheduled job — this project has no background job runner. Instead,
-  `src/lib/reconcile-rent.ts` backfills any missing `PENDING` Rent rows
-  for an `ACTIVE` Lease (one per month since `Lease.startDate`, amount =
-  the Lease's `monthlyRent`, due on the 1st) every time Rent data is read
-  (`getRentsForLease`, `getOutstandingBalanceForBuilding`,
-  `getTenantFlatView`) — `createMany` + `skipDuplicates: true`, the same
-  pattern Floors/Flats bulk-create already uses
+- `src/lib/reconcile-rent.ts` bills rent: it backfills any missing
+  `PENDING` Rent rows for an `ACTIVE` Lease (one per month since
+  `Lease.startDate`, amount = the Lease's `monthlyRent`, due on the 1st)
+  — `createMany` + `skipDuplicates: true`, the same pattern Floors/Flats
+  bulk-create already uses. It runs every night for every active Lease
+  (Vercel Cron → `/api/cron/bill-rent`), when a Lease starts, and as a
+  cheap read-only check whenever Rent data is read (`getRentsForLease`,
+  `getOutstandingBalanceForBuilding`, `getTenantFlatView`, reports), which
+  writes only if the nightly job hasn't caught up yet
 - A `PENDING` Rent becomes `OVERDUE` once the month it's due in has fully
   passed and it's still unpaid (not immediately on its due date — the
   Landlord/Tenant have the whole month)

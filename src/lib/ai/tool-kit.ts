@@ -146,10 +146,12 @@ export function parseMonth(text: string): { month: number; year?: number } | nul
   const value = text.trim().toLowerCase();
   const year = value.match(/\b(20\d{2})\b/)?.[1];
 
-  const named = MONTH_NAMES.findIndex((name) => {
-    const full = name.toLowerCase();
-    return value.includes(full) || new RegExp(`\\b${full.slice(0, 3)}\\b`).test(value);
-  });
+  // Any word of 3+ letters that starts a month name: "oct", "sept",
+  // "october" (the app itself writes "Sept").
+  const words = value.split(/[^a-z]+/).filter((word) => word.length >= 3);
+  const named = MONTH_NAMES.findIndex((name) =>
+    words.some((word) => name.toLowerCase().startsWith(word))
+  );
 
   let month = named >= 0 ? named + 1 : undefined;
 

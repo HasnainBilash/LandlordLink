@@ -212,7 +212,8 @@ function dueDate(month: number, year: number) {
 
 export async function resetDemoData(prisma: PrismaClient): Promise<DemoSummary> {
   // Hash before the transaction so it doesn't hold the connection open.
-  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  // Same cost as real sign-ups, so sign-in timing is the same for every account.
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
 
   // One transaction: visitors see the old demo until the new one is
   // complete, and a failure leaves the old demo in place.

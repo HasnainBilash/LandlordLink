@@ -140,7 +140,8 @@ async function main() {
   const removed = await prisma.user.deleteMany({ where: { email: { in: emails } } });
   if (removed.count > 0) console.log(`Removed ${removed.count} previous test account(s).`);
 
-  const passwordHash = await bcrypt.hash(PASSWORD, 10);
+  // Same cost as real sign-ups, so sign-in timing is the same for every account.
+  const passwordHash = await bcrypt.hash(PASSWORD, 12);
 
   const landlord = await createUser(ACCOUNTS.landlord, passwordHash);
   const otherLandlord = await createUser(ACCOUNTS.otherLandlord, passwordHash);

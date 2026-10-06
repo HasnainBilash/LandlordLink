@@ -2,7 +2,7 @@
 
 import { AuthError } from "next-auth";
 
-import { signIn } from "@/auth";
+import { signIn, TooManySignInAttempts } from "@/auth";
 
 export type LoginState = {
   success: boolean;
@@ -33,6 +33,15 @@ export async function loginUser(
     return { success: true };
   } catch (error) {
     if (error instanceof AuthError) {
+      if (error instanceof TooManySignInAttempts || ("code" in error && error.code === "rate_limited")) {
+        return {
+          success: false,
+          errors: {
+            general: ["Too many sign-in attempts. Please wait 15 minutes and try again."],
+          },
+        };
+      }
+
       switch (error.type) {
         case "CredentialsSignin":
           return {

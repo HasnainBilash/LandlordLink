@@ -5,6 +5,11 @@ import { getAiProviders } from "@/lib/ai";
 import { runAssistant } from "@/lib/ai/assistant";
 import { AiBusyError } from "@/lib/ai/types";
 import { countAssistantMessage, getAssistantQuota } from "@/lib/ai/usage";
+import { rateLimit } from "@/lib/rate-limit";
+
+// On top of the daily limit: messages per landlord per minute, so a burst
+// can't use up the AI provider's per-minute quota for everyone.
+const MESSAGES_PER_MINUTE = Number(process.env.ASSISTANT_PER_MINUTE_LIMIT) || 10;
 
 // The landlord's AI assistant: one question in, one answer out. The chat
 // history lives in the browser and comes along with each question.
@@ -69,6 +74,12 @@ export async function POST(request: Request) {
 
   if (providers.length === 0) {
     return reply({ error: "The assistant isn't set up yet." }, 503);
+  }
+
+  const burst = await rateLimit(`assistant:${session.user.id}`, MESSAGES_PER_MINUTE, 60);
+
+  if (!burst.allowed) {
+    return reply({ error: "That's a lot of messages at once. Please wait a minute and try again." }, 429);
   }
 
   const quota = await getAssistantQuota(session.user);

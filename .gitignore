@@ -32,3 +32,6 @@ Thumbs.db
 *.tsbuildinfo
 # Local design screenshots (not part of the app)
 /design-preview
+
+# End-to-end test screenshots and logs
+/e2e/output
