@@ -10,8 +10,9 @@ bills, notices and reports — and can ask an AI assistant to look things up
 or record a payment for them. Tenants find a flat, request to join, and
 follow their own rent, bills and notices.
 
-**Try it:** the live site has **Try as landlord** and **Try as tenant**
-buttons — one click, no sign-up. The demo resets every night.
+**Try it: [landlordlink.vercel.app](https://landlordlink.vercel.app)** —
+click **Try as landlord** or **Try as tenant** (one click, no sign-up).
+The demo resets every night.
 
 ![Landlord home: this month's collection, key numbers and what needs attention](docs/screenshots/landlord-home.png)
 
